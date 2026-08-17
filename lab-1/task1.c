@@ -16,13 +16,7 @@ void print_to_file(long *primes, long count, const char *filename) {
     printf("Results written to %s\n", filename);
 }
 
-void is_prime(long k) {
-    if (k < 2) {
-        return;
-    } else if (k > 100000000) {
-        fprintf(stderr, "Error: n must be less than or equal to 100,000,000\n");
-        return;
-    }
+long *is_prime(long k, long *out_count) {
     // allocate memory for an array of size k, with each element being a _Bool (1 byte)
     _Bool *primeArray = calloc((size_t)k, sizeof *primeArray);
 
@@ -49,7 +43,19 @@ void is_prime(long k) {
     }
 
     // intialise array to hold primes
-    long *primes = malloc(sizeof(long) * (count > 0 ? count : 1)); // use count as length otherwise use 1
+    if (count == 0) {
+        free(primeArray);
+        *out_count = 0;
+        return NULL;
+    }
+
+    long *primes = malloc(sizeof(long) * count);
+    if (primes == NULL) {
+        fprintf(stderr, "Memory allocation failed for primes array\n");
+        free(primeArray);
+        *out_count = 0;
+        return NULL;
+    }
 
     long idx = 0;
     for (long i = 0; i < k; i++) {
@@ -58,19 +64,9 @@ void is_prime(long k) {
         }
     }
 
-    if (k < 100) {
-        printf("Prime numbers that are strictly less than %ld are:\n", k);
-        for (long i = 0; i < count; i++) {
-            printf("%ld ", primes[i]);
-        }
-        printf("\n");
-    } else {
-        const char *filename = "primes.txt";
-        print_to_file(primes, count, filename);
-    }
-
-    free(primes);
     free(primeArray);
+    *out_count = count;
+    return primes;
 }
 
 int main(void) {
@@ -82,7 +78,34 @@ int main(void) {
         return 1;
     }
 
-    is_prime(n);
+    if (n < 2) {
+        printf("Please enter a number greater than or equal to 2.\n");
+        return 0;
+    }
+    if (n > 100000000) {
+        fprintf(stderr, "Error: n is too large (max 100000000)\n");
+        return 1;
+    }
+
+    long count = 0;
+    long *primes = is_prime(n, &count);
+    if (count == 0) {
+        printf("No primes found or error occurred.\n");
+        return 0;
+    }
+
+    if (n < 100) {
+        printf("Prime numbers that are strictly less than %ld are:\n", n);
+        for (long i = 0; i < count; i++) {
+            printf("%ld ", primes[i]);
+        }
+        printf("\n");
+    } else {
+        const char *filename = "primes.txt";
+        print_to_file(primes, count, filename);
+    }
+
+    free(primes);
     printf("\n");
     return 0;
 }
