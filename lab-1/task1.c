@@ -12,8 +12,8 @@ void is_prime(long long k) {
     primeArray[1] = 0;
     for (long long i = 2; i < k; i++){
         _Bool isPrime = 1;
-        for (long long j = 2; j <= sqrt(k); j++){
-            if (i%j == 0){
+        for (long long j = 2; j <= sqrt(i); j++){
+            if (i % j == 0){
                 isPrime = 0;
                 break;
             }
