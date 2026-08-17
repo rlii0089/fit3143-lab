@@ -2,11 +2,14 @@
 #include <math.h>
 #include <stdlib.h>
 
+/* forward declaration so callers can use it before the definition */
+void print_to_file(long long *primes, long long count, const char *filename);
+
 void is_prime(long long k) {
     if (k < 2) {
         return;
     }
-
+    // allocate memory for an array of size k, with each element being a _Bool (1 byte)
     _Bool *primeArray = calloc((size_t)k, sizeof *primeArray);
     if (primeArray == NULL) {
         fprintf(stderr, "Memory allocation failed for primeArray\n");
@@ -61,10 +64,7 @@ void is_prime(long long k) {
         }
         printf("\n");
     } else {
-        char filename[64];
-        snprintf(filename, sizeof(filename), "primes_%lld.txt", k);
-        /* write primes to file for larger n */
-        extern void print_to_file(long long *primes, long long count, const char *filename);
+        const char *filename = "primes.txt";
         print_to_file(primes, count, filename);
     }
 
