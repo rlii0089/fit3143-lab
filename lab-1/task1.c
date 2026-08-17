@@ -1,18 +1,17 @@
 #include <stdio.h>
-#include <math.h>
 #include <stdlib.h>
 
-void print_to_file(long *primes, long count, const char *filename) {
-    FILE *fp = fopen(filename, "w");
+void print_to_file(long *primes, long prime_count, const char *filename) {
+    FILE *output_file = fopen(filename, "w");
 
-    fprintf(fp, "Prime numbers found (%ld total):\n", count);
-    for (long i = 0; i < count; i++) {
-        fprintf(fp, "%ld", primes[i]);
-        if (i != count - 1) fprintf(fp, ", ");
+    fprintf(output_file, "Prime numbers found (%ld total):\n", prime_count);
+    for (long i = 0; i < prime_count; i++) {
+        fprintf(output_file, "%ld", primes[i]);
+        if (i != prime_count - 1) fprintf(output_file, ", ");
     }
-    fprintf(fp, "\n");
+    fprintf(output_file, "\n");
 
-    fclose(fp);
+    fclose(output_file);
     printf("Results written to %s\n", filename);
 }
 
@@ -73,11 +72,11 @@ int main(void) {
     long n;
 
     printf("Enter n (max 100,000,000): ");
+    
     if (scanf("%ld", &n) != 1) {
         fprintf(stderr, "Error: failed to read n\n");
         return 1;
     }
-
     if (n < 2) {
         printf("Please enter a number greater than or equal to 2.\n");
         return 0;
@@ -87,25 +86,24 @@ int main(void) {
         return 1;
     }
 
-    long count = 0;
-    long *primes = is_prime(n, &count);
-    if (count == 0) {
+    long prime_count = 0;
+    long *primes = is_prime(n, &prime_count);
+    if (prime_count == 0) {
         printf("No primes found or error occurred.\n");
         return 0;
     }
 
     if (n < 100) {
         printf("Prime numbers that are strictly less than %ld are:\n", n);
-        for (long i = 0; i < count; i++) {
+        for (long i = 0; i < prime_count; i++) {
             printf("%ld ", primes[i]);
         }
         printf("\n");
     } else {
         const char *filename = "primes.txt";
-        print_to_file(primes, count, filename);
+        print_to_file(primes, prime_count, filename);
     }
 
     free(primes);
-    printf("\n");
     return 0;
 }
