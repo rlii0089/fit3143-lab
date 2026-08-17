@@ -2,29 +2,34 @@
 #include <math.h>
 #include <stdlib.h>
 
-/* forward declaration so callers can use it before the definition */
-void print_to_file(long long *primes, long long count, const char *filename);
+void print_to_file(long *primes, long count, const char *filename) {
+    FILE *fp = fopen(filename, "w");
 
-void is_prime(long long k) {
+    fprintf(fp, "Prime numbers found (%ld total):\n", count);
+    for (long i = 0; i < count; i++) {
+        fprintf(fp, "%ld", primes[i]);
+        if (i != count - 1) fprintf(fp, ", ");
+    }
+    fprintf(fp, "\n");
+
+    fclose(fp);
+    printf("Results written to %s\n", filename);
+}
+
+void is_prime(long k) {
     if (k < 2) {
+        return;
+    } else if (k > 100000000) {
+        fprintf(stderr, "Error: n must be less than or equal to 100,000,000\n");
         return;
     }
     // allocate memory for an array of size k, with each element being a _Bool (1 byte)
     _Bool *primeArray = calloc((size_t)k, sizeof *primeArray);
-    if (primeArray == NULL) {
-        fprintf(stderr, "Memory allocation failed for primeArray\n");
-        return;
-    }
-    if (k > 0) {
-        primeArray[0] = 0;
-    }
-    if (k > 1) {
-        primeArray[1] = 0;
-    }
-    for (long long i = 2; i < k; i++){
+
+    for (long i = 2; i < k; i++){
         _Bool isPrime = 1;
         /* avoid calling sqrt() repeatedly; use integer bound */
-        for (long long j = 2; j * j <= i; j++){
+        for (long j = 2; j * j <= i; j++){
             if (i % j == 0){
                 isPrime = 0;
                 break;
@@ -38,29 +43,25 @@ void is_prime(long long k) {
         }
     }
 
-    long long count = 0;
-    for (long long i = 0; i < k; i++) {
+    long count = 0;
+    for (long i = 0; i < k; i++) {
         if (primeArray[i] == 1) count++;
     }
 
     // intialise array to hold primes
-    long long *primes = malloc(sizeof(long long) * (count > 0 ? count : 1)); // use count as length otherwise use 1
-    if (primes == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        return;
-    }
+    long *primes = malloc(sizeof(long) * (count > 0 ? count : 1)); // use count as length otherwise use 1
 
-    long long idx = 0;
-    for (long long i = 0; i < k; i++) {
+    long idx = 0;
+    for (long i = 0; i < k; i++) {
         if (primeArray[i] == 1) {
             primes[idx++] = i;
         }
     }
 
     if (k < 100) {
-        printf("Prime numbers that are strictly less than %lld are:\n", k);
-        for (long long i = 0; i < count; i++) {
-            printf("%lld ", primes[i]);
+        printf("Prime numbers that are strictly less than %ld are:\n", k);
+        for (long i = 0; i < count; i++) {
+            printf("%ld ", primes[i]);
         }
         printf("\n");
     } else {
@@ -72,29 +73,11 @@ void is_prime(long long k) {
     free(primeArray);
 }
 
-void print_to_file(long long *primes, long long count, const char *filename) {
-    FILE *fp = fopen(filename, "w");
-    if (fp == NULL) {
-        fprintf(stderr, "Error: could not open file %s for writing\n", filename);
-        exit(EXIT_FAILURE);
-    }
-
-    fprintf(fp, "Prime numbers found (%lld total):\n", count);
-    for (long long i = 0; i < count; i++) {
-        fprintf(fp, "%lld", primes[i]);
-        if (i != count - 1) fprintf(fp, ", ");
-    }
-    fprintf(fp, "\n");
-
-    fclose(fp);
-    printf("Results written to %s\n", filename);
-}
-
 int main(void) {
-    long long n;
+    long n;
 
-    printf("Enter n: ");
-    if (scanf("%lld", &n) != 1) {
+    printf("Enter n (max 100,000,000): ");
+    if (scanf("%ld", &n) != 1) {
         fprintf(stderr, "Error: failed to read n\n");
         return 1;
     }
