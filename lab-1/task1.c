@@ -4,7 +4,6 @@
 
 void is_prime(long long k) {
     if (k < 2) {
-        printf("Please enter a number greater than or equal to 2.\n");
         return;
     }
 
