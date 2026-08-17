@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+/* */
 void print_to_file(const long long *primes, long long count, const char *filename);
 
 void generate_primes_below(long long limit) {
