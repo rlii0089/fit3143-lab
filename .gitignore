@@ -1,0 +1,26 @@
+# Ignore the compiled `task1` executable(s)
+task1
+lab-1/task1
+
+# Common C build artifacts
+*.o
+*.obj
+*.out
+*.exe
+
+# Build folders
+/build/
+/bin/
+/dist/
+/obj/
+
+# Temporary and editor files
+*~
+*.swp
+.DS_Store
+.vscode/
+
+# Core dumps
+core
+
+# Keep source files (e.g., *.c, *.h) tracked
