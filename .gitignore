@@ -2,6 +2,10 @@
 task1
 lab-1/task1
 
+# Ignore output files
+*.txt
+
+
 # Common C build artifacts
 *.o
 *.obj
