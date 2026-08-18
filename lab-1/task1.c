@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 void print_to_file(long *primes, long prime_count, const char *filename) {
     FILE *output_file = fopen(filename, "w");
@@ -18,6 +19,11 @@ void print_to_file(long *primes, long prime_count, const char *filename) {
 long *is_prime(long k, long *out_count) {
     // allocate memory for an array of size k, with each element being a _Bool (1 byte)
     _Bool *primeArray = calloc((size_t)k, sizeof *primeArray);
+    if (primeArray == NULL) {
+        fprintf(stderr, "Memory allocation failed for primeArray\n");
+        *out_count = 0;
+        return NULL;
+    }
 
     for (long i = 2; i < k; i++){
         _Bool isPrime = 1;
@@ -69,6 +75,11 @@ long *is_prime(long k, long *out_count) {
 }
 
 int main(void) {
+    struct timespec start, end, startComp, endComp; 
+    double comp_time, total_time;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
     long n;
 
     printf("Enter n (max 100,000,000): ");
@@ -87,7 +98,14 @@ int main(void) {
     }
 
     long prime_count = 0;
+
+    clock_gettime(CLOCK_MONOTONIC, &startComp); 
     long *primes = is_prime(n, &prime_count);
+    clock_gettime(CLOCK_MONOTONIC, &endComp); 
+
+    comp_time = (endComp.tv_sec - startComp.tv_sec) * 1e9; 
+    comp_time = (comp_time + (endComp.tv_nsec - startComp.tv_nsec)) * 1e-9;
+
     if (prime_count == 0) {
         printf("No primes found or error occurred.\n");
         return 0;
@@ -105,5 +123,11 @@ int main(void) {
     }
 
     free(primes);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    total_time = (end.tv_sec - start.tv_sec) * 1e9;
+    total_time = (total_time + (end.tv_nsec - start.tv_nsec)) * 1e-9;
+    printf("Computation time taken: %f seconds\n", comp_time);
+    printf("Total time taken: %f seconds\n", total_time);
     return 0;
 }
