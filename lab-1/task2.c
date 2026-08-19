@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <time.h>
 
 #define NUM_THREADS 4
 
@@ -143,6 +144,11 @@ long *is_prime(long k, long *out_count) {
 
 
 int main(void) {
+    struct timespec start, end, startComp, endComp; 
+    double comp_time, total_time;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
     long n;
 
     printf("Enter n (max 100,000,000): ");
@@ -161,13 +167,18 @@ int main(void) {
     }
 
     long prime_count = 0;
+    clock_gettime(CLOCK_MONOTONIC, &startComp); 
     // The prime search now creates NUM_THREADS POSIX threads internally.
     long *primes = is_prime(n, &prime_count);
+    clock_gettime(CLOCK_MONOTONIC, &endComp); 
+
+    comp_time = (endComp.tv_sec - startComp.tv_sec) * 1e9; 
+    comp_time = (comp_time + (endComp.tv_nsec - startComp.tv_nsec)) * 1e-9;
+
     if (prime_count == 0) {
         printf("No primes found or error occurred.\n");
         return 0;
     }
-
 
     if (n < 100)
     {
@@ -184,5 +195,11 @@ int main(void) {
     printf("Number of threads used: %d\n", NUM_THREADS);
 
     free(primes);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    total_time = (end.tv_sec - start.tv_sec) * 1e9;
+    total_time = (total_time + (end.tv_nsec - start.tv_nsec)) * 1e-9;
+    printf("Computation time taken: %f seconds\n", comp_time);
+    printf("Total time taken: %f seconds\n", total_time);
     return 0;
 }
