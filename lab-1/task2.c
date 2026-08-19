@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <time.h>
 
-#define NUM_THREADS 8
+#define NUM_THREADS 2
 
 // Added shared value so every thread knows the upper limit n.
 long upperLimit;
@@ -161,8 +161,8 @@ int main(void) {
         printf("Please enter a number greater than or equal to 2.\n");
         return 0;
     }
-    if (n > 1000000000) {
-        fprintf(stderr, "Error: n is too large (max 1000000000)\n");
+    if (n > 100000000) {
+        fprintf(stderr, "Error: n is too large (max 100,000,000)\n");
         return 1;
     }
 
