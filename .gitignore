@@ -1,6 +1,7 @@
 # Ignore the compiled `task1` executable(s)
-task1
 lab-1/task1
+lab-1/task2
+lab-1/task3
 
 # Ignore output files
 *.txt
