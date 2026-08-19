@@ -161,8 +161,8 @@ int main(void) {
         printf("Please enter a number greater than or equal to 2.\n");
         return 0;
     }
-    if (n > 100000000) {
-        fprintf(stderr, "Error: n is too large (max 100000000)\n");
+    if (n > 1000000000) {
+        fprintf(stderr, "Error: n is too large (max 1000000000)\n");
         return 1;
     }
 
