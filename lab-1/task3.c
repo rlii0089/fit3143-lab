@@ -36,7 +36,7 @@ long *is_prime(long k, long *out_count) {
     prime array, there is no data races. Dynmamic scheduling is used as
     the work for a bigger i is more expensive.
     */
-    #pragma omp parallel for schedule(dynamic, 64)
+    #pragma omp parallel for schedule(dynamic, 4) // chunk size adjustable
     for (long i = 2; i < k; i++){
         _Bool isPrime = 1;
 
@@ -92,12 +92,19 @@ long *is_prime(long k, long *out_count) {
 }
 
 int main(void) {
+    //omp_set_num_threads(8);
     struct timespec start, end, startComp, endComp; 
     double comp_time, total_time;
 
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     long n;
+
+    #pragma omp parallel
+    {
+        #pragma omp single
+        printf("Using %d threads\n", omp_get_num_threads());
+    }
 
     printf("Enter n (max 100,000,000): ");
     
