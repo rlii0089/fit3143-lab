@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <time.h>
 
-#define NUM_THREADS 4
+#define NUM_THREADS 8
 
 // Added shared value so every thread knows the upper limit n.
 long upperLimit;
@@ -147,8 +147,6 @@ int main(void) {
     struct timespec start, end, startComp, endComp; 
     double comp_time, total_time;
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-
     long n;
 
     printf("Enter n (max 100,000,000): ");
@@ -157,6 +155,8 @@ int main(void) {
         fprintf(stderr, "Error: failed to read n\n");
         return 1;
     }
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
     if (n < 2) {
         printf("Please enter a number greater than or equal to 2.\n");
         return 0;

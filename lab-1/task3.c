@@ -36,7 +36,7 @@ long *is_prime(long k, long *out_count) {
     prime array, there is no data races. Dynmamic scheduling is used as
     the work for a bigger i is more expensive.
     */
-    #pragma omp parallel for schedule(dynamic, 4) // chunk size adjustable
+    #pragma omp parallel for schedule(dynamic, 1) // chunk size adjustable
     for (long i = 2; i < k; i++){
         _Bool isPrime = 1;
 
@@ -59,7 +59,7 @@ long *is_prime(long k, long *out_count) {
     Second parallelisation. Give each thread its own private copu of count
     and sum them at the end, to avoid race condition on count++.
     */
-    #pragma omp parallel for reduction(+:count)
+    // #pragma omp parallel for reduction(+:count)
     for (long i = 0; i < k; i++) {
         if (primeArray[i] == 1) count++;
     }
@@ -92,11 +92,9 @@ long *is_prime(long k, long *out_count) {
 }
 
 int main(void) {
-    //omp_set_num_threads(8);
+    omp_set_num_threads(8);
     struct timespec start, end, startComp, endComp; 
     double comp_time, total_time;
-
-    clock_gettime(CLOCK_MONOTONIC, &start);
 
     long n;
 
@@ -112,6 +110,8 @@ int main(void) {
         fprintf(stderr, "Error: failed to read n\n");
         return 1;
     }
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
     if (n < 2) {
         printf("Please enter a number greater than or equal to 2.\n");
         return 0;
@@ -151,6 +151,6 @@ int main(void) {
     total_time = (end.tv_sec - start.tv_sec) * 1e9;
     total_time = (total_time + (end.tv_nsec - start.tv_nsec)) * 1e-9;
     printf("Computation time taken: %f seconds\n", comp_time);
-    printf("Total time taken: %f seconds\n", total_time);
+    printf("Total time taken (including printing/file writing): %f seconds\n", total_time);
     return 0;
 }
