@@ -59,7 +59,7 @@ long *is_prime(long k, long *out_count) {
     Second parallelisation. Give each thread its own private copu of count
     and sum them at the end, to avoid race condition on count++.
     */
-    // #pragma omp parallel for reduction(+:count)
+    #pragma omp parallel for reduction(+:count)
     for (long i = 0; i < k; i++) {
         if (primeArray[i] == 1) count++;
     }

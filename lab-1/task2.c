@@ -9,6 +9,7 @@
 // Global variables for all threads to access
 long upper_limit;
 bool *prime_number_array;
+long partial_counts[NUMBER_OF_THREADS]; 
 
 void print_to_file(long *primes, long prime_count, const char *filename) {
     FILE *output_file = fopen(filename, "w");
@@ -51,6 +52,24 @@ void *find_primes_for_thread(void *thread_information) {
     return 0;
 }
 
+void *count_primes_for_thread(void *thread_information) {
+    int *thread_number_pointer = (int *)thread_information;
+    int thread_number = *thread_number_pointer;
+
+    long local_count = 0;
+
+    // Cyclic partitioning again
+    for (long number = 2 + thread_number;
+         number < upper_limit;
+         number += NUMBER_OF_THREADS)
+    {
+        if (prime_number_array[number] == true) local_count++;
+    }
+
+    partial_counts[thread_number] = local_count;
+    return 0;
+}
+
 long *is_prime(long input_number, long *is_prime_count) {
     upper_limit = input_number;
     // Changed the prime array to shared memory accessible by all threads.
@@ -84,9 +103,24 @@ long *is_prime(long input_number, long *is_prime_count) {
         pthread_join(thread_ids[thread_index], NULL);
     }
 
+    // Fork to create counting threads.
+    for (thread_index = 0; thread_index < NUMBER_OF_THREADS; thread_index++) {
+        pthread_create(
+            &thread_ids[thread_index],
+            NULL,
+            count_primes_for_thread,
+            &thread_numbers[thread_index]
+        );
+    }
+
+    // Join so main waits until all counting threads finish.
+    for (thread_index = 0; thread_index < NUMBER_OF_THREADS; thread_index++) {
+        pthread_join(thread_ids[thread_index], NULL);
+    }
+
     long count = 0;
-    for (long i = 0; i < input_number; i++) {
-        if (prime_number_array[i] == true) count++;
+    for (int t = 0; t < NUMBER_OF_THREADS; t++) {
+        count += partial_counts[t];
     }
 
     if (count == 0) {
