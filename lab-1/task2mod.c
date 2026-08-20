@@ -225,21 +225,17 @@ int main(void) {
         long prime_count = 0;
 
         clock_gettime(CLOCK_MONOTONIC, &start_comp);
-
         // The prime search creates NUMBER_OF_THREADS POSIX threads internally.
         long *primes = is_prime(n, &prime_count);
-
         clock_gettime(CLOCK_MONOTONIC, &end_comp);
 
         comp_time = (end_comp.tv_sec - start_comp.tv_sec) * 1e9;
-
         comp_time = (comp_time + (end_comp.tv_nsec - start_comp.tv_nsec)) * 1e-9;
 
         if (prime_count == 0) {
             printf("No primes found or error occurred.\n\n");
             continue;
         }
-
 
         /*
          * All three test values are larger than 100,
@@ -257,41 +253,18 @@ int main(void) {
             n
         );
 
-
-        print_to_file(
-            primes,
-            prime_count,
-            filename
-        );
-
-
+        print_to_file(primes, prime_count, filename);
         free(primes);
 
+        clock_gettime(CLOCK_MONOTONIC, &end);
 
-        clock_gettime(
-            CLOCK_MONOTONIC,
-            &end
-        );
+        total_time = (end.tv_sec - start.tv_sec) * 1e9;
+        total_time = (total_time + (end.tv_nsec - start.tv_nsec)) * 1e-9;
 
-
-        total_time =
-            (end.tv_sec - start.tv_sec) * 1e9;
-
-        total_time =
-            (total_time +
-            (end.tv_nsec - start.tv_nsec)) * 1e-9;
-
-
-        printf("Number of primes found: %ld\n",
-               prime_count);
-
-        printf("Computation time taken: %f seconds\n",
-               comp_time);
-
-        printf("Total time taken: %f seconds\n\n",
-               total_time);
+        printf("Number of primes found: %ld\n", prime_count);
+        printf("Computation time taken: %f seconds\n", comp_time);
+        printf("Total time taken: %f seconds\n\n", total_time);
     }
-
 
     return 0;
 }
