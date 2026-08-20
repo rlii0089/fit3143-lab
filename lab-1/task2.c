@@ -1,15 +1,13 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <time.h>
 
-#define NUM_THREADS 2
+#define NUMBER_OF_THREADS 8
 
-// Added shared value so every thread knows the upper limit n.
-long upperLimit;
-
-// Added shared array where threads mark prime numbers.
-_Bool *primeNumberArray;
+// Global variables for all threads to access
+long upper_limit;
+_Bool *prime_number_array;
 
 
 void print_to_file(long *primes, long prime_count, const char *filename) {
@@ -20,7 +18,6 @@ void print_to_file(long *primes, long prime_count, const char *filename) {
         fprintf(output_file, "%ld", primes[i]);
         if (i != prime_count - 1) fprintf(output_file, ", ");
     }
-    fprintf(output_file, "\n");
 
     fclose(output_file);
     printf("Results written to %s\n", filename);
@@ -28,33 +25,33 @@ void print_to_file(long *primes, long prime_count, const char *filename) {
 
 
 // Common function that will be executed by each POSIX thread.
-void *findPrimesForThread(void *threadArgument) {
+void *find_primes_for_thread(void *thread_information) {
     // Access the thread number passed from main.
-    int *threadNumberPointer = (int *)threadArgument;
+    int *thread_number_pointer = (int *)thread_information;
     // Store this thread's number.
-    int threadNumber = *threadNumberPointer;
+    int thread_number = *thread_number_pointer;
 
     // Cyclic partitioning so each thread checks different numbers.
-    for (long number = 2 + threadNumber;
-         number < upperLimit;
-         number += NUM_THREADS)
+    for (long number = 2 + thread_number;
+         number < upper_limit;
+         number += NUMBER_OF_THREADS)
     {
-        _Bool isPrime = 1;
+        _Bool is_prime = 1;
 
         // Each thread performs the same prime check as the serial version.
         for (long divisor = 2; divisor * divisor <= number; divisor++)
         {
             if (number % divisor == 0){
-                isPrime = 0;
+                is_prime = 0;
                 break;
             }
         }
 
         // Shared-array update for the number assigned to this thread.
-        if (isPrime) {
-            primeNumberArray[number] = 1;
+        if (is_prime) {
+            prime_number_array[number] = 1;
         } else {
-            primeNumberArray[number] = 0;
+            prime_number_array[number] = 0;
         }
     }
 
@@ -63,58 +60,58 @@ void *findPrimesForThread(void *threadArgument) {
 }
 
 
-long *is_prime(long k, long *out_count) {
-    // Added assignment so all threads can access the value of k.
-    upperLimit = k;
+long *is_prime(long input_number, long *is_prime_count) {
+    // Added assignment so all threads can access the value of input_number.
+    upper_limit = input_number;
     // Changed the prime array to shared memory accessible by all threads.
-    primeNumberArray = calloc((size_t)k, sizeof *primeNumberArray);
+    prime_number_array = calloc((size_t)input_number, sizeof *prime_number_array);
 
-    if (primeNumberArray == NULL) {
+    if (prime_number_array == NULL) {
         fprintf(stderr, "Memory allocation failed for prime array\n");
-        *out_count = 0;
+        *is_prime_count = 0;
         return NULL;
     }
 
 
     // Added array containing the POSIX thread identifiers.
-    pthread_t threadIDs[NUM_THREADS];
+    pthread_t thread_ids[NUMBER_OF_THREADS];
     // Added array containing the number assigned to each thread.
-    int threadNumbers[NUM_THREADS];
+    int thread_numbers[NUMBER_OF_THREADS];
     // Added loop variable following the Week 2 pthread example style.
-    int threadIndex = 0;
+    int thread_index = 0;
 
 
     // Fork section to create all worker threads.
-    for (threadIndex = 0; threadIndex < NUM_THREADS; threadIndex++) {
+    for (thread_index = 0; thread_index < NUMBER_OF_THREADS; thread_index++) {
         // Unique number for each thread.
-        threadNumbers[threadIndex] = threadIndex;
+        thread_numbers[thread_index] = thread_index;
 
         // Creation of a thread running the common thread function.
         pthread_create(
-            &threadIDs[threadIndex],
+            &thread_ids[thread_index],
             NULL,
-            findPrimesForThread,
-            &threadNumbers[threadIndex]
+            find_primes_for_thread,
+            &thread_numbers[thread_index]
         );
     }
 
 
     // Join section so main waits until all threads finish.
-    for (threadIndex = 0; threadIndex < NUM_THREADS; threadIndex++) {
+    for (thread_index = 0; thread_index < NUMBER_OF_THREADS; thread_index++) {
         // Added pthread_join for each created thread.
-        pthread_join(threadIDs[threadIndex], NULL);
+        pthread_join(thread_ids[thread_index], NULL);
     }
 
 
     long count = 0;
-    for (long i = 0; i < k; i++) {
-        if (primeNumberArray[i] == 1) count++;
+    for (long i = 0; i < input_number; i++) {
+        if (prime_number_array[i] == 1) count++;
     }
 
     // Intialise array to hold primes
     if (count == 0) {
-        free(primeNumberArray);
-        *out_count = 0;
+        free(prime_number_array);
+        *is_prime_count = 0;
         return NULL;
     }
 
@@ -123,57 +120,54 @@ long *is_prime(long k, long *out_count) {
 
     if (primes == NULL) {
         fprintf(stderr, "Memory allocation failed for primes array\n");
-        free(primeNumberArray);
-        *out_count = 0;
+        free(prime_number_array);
+        *is_prime_count = 0;
         return NULL;
     }
 
 
     long idx = 0;
     // Main thread reads array from lowest index to keeps final list sorted.
-    for (long i = 0; i < k; i++) {
-        if (primeNumberArray[i] == 1) {
+    for (long i = 0; i < input_number; i++) {
+        if (prime_number_array[i] == 1) {
             primes[idx++] = i;
         }
     }
 
-    free(primeNumberArray);
-    *out_count = count;
+    free(prime_number_array);
+    *is_prime_count = count;
     return primes;
 }
 
 
 int main(void) {
-    struct timespec start, end, startComp, endComp; 
+    printf("Number of threads available: %d\n\n", NUMBER_OF_THREADS);
+
+    struct timespec start, end, start_comp, end_comp; 
     double comp_time, total_time;
 
     long n;
 
     printf("Enter n (max 100,000,000): ");
-
     if (scanf("%ld", &n) != 1) {
         fprintf(stderr, "Error: failed to read n\n");
         return 1;
     }
 
     clock_gettime(CLOCK_MONOTONIC, &start);
-    if (n < 2) {
-        printf("Please enter a number greater than or equal to 2.\n");
+    if (n < 2 || n > 100000000) {
+        printf("Please enter a number within range [2 to 100,000,000].\n");
         return 0;
-    }
-    if (n > 100000000) {
-        fprintf(stderr, "Error: n is too large (max 100,000,000)\n");
-        return 1;
     }
 
     long prime_count = 0;
-    clock_gettime(CLOCK_MONOTONIC, &startComp); 
-    // The prime search now creates NUM_THREADS POSIX threads internally.
+    clock_gettime(CLOCK_MONOTONIC, &start_comp); 
+    // The prime search now creates NUMBER_OF_THREADS POSIX threads internally.
     long *primes = is_prime(n, &prime_count);
-    clock_gettime(CLOCK_MONOTONIC, &endComp); 
+    clock_gettime(CLOCK_MONOTONIC, &end_comp); 
 
-    comp_time = (endComp.tv_sec - startComp.tv_sec) * 1e9; 
-    comp_time = (comp_time + (endComp.tv_nsec - startComp.tv_nsec)) * 1e-9;
+    comp_time = (end_comp.tv_sec - start_comp.tv_sec) * 1e9; 
+    comp_time = (comp_time + (end_comp.tv_nsec - start_comp.tv_nsec)) * 1e-9;
 
     if (prime_count == 0) {
         printf("No primes found or error occurred.\n");
@@ -182,7 +176,7 @@ int main(void) {
 
     if (n < 100)
     {
-        printf("Prime numbers that are strictly less than %ld are:\n", n);
+        printf("Prime numbers less than %ld:\n", n);
 
         for (long i = 0; i < prime_count; i++) {
             printf("%ld ", primes[i]);
@@ -192,7 +186,6 @@ int main(void) {
         const char *filename = "primes.txt";
         print_to_file(primes, prime_count, filename);
     }
-    printf("Number of threads used: %d\n", NUM_THREADS);
 
     free(primes);
 
