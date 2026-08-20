@@ -32,6 +32,9 @@ void *find_primes_for_thread(void *thread_information) {
     int *thread_number_pointer = (int *)thread_information;
     int thread_number = *thread_number_pointer;
 
+    // Private count variable for each thread
+    long local_count = 0;
+
     // Cyclic partitioning.
     for (long number = 2 + thread_number;
          number < upper_limit;
@@ -47,23 +50,9 @@ void *find_primes_for_thread(void *thread_information) {
 
         // Update shared array with the result of the prime check.
         prime_number_array[number] = is_prime;
-    }
-
-    return 0;
-}
-
-void *count_primes_for_thread(void *thread_information) {
-    int *thread_number_pointer = (int *)thread_information;
-    int thread_number = *thread_number_pointer;
-
-    long local_count = 0;
-
-    // Cyclic partitioning again
-    for (long number = 2 + thread_number;
-         number < upper_limit;
-         number += NUMBER_OF_THREADS)
-    {
-        if (prime_number_array[number] == true) local_count++;
+        if (is_prime) {
+            local_count++;
+        }
     }
 
     partial_counts[thread_number] = local_count;
@@ -99,21 +88,6 @@ long *is_prime(long input_number, long *is_prime_count) {
     }
 
     // Join so main waits until all threads finish.
-    for (thread_index = 0; thread_index < NUMBER_OF_THREADS; thread_index++) {
-        pthread_join(thread_ids[thread_index], NULL);
-    }
-
-    // Fork to create counting threads.
-    for (thread_index = 0; thread_index < NUMBER_OF_THREADS; thread_index++) {
-        pthread_create(
-            &thread_ids[thread_index],
-            NULL,
-            count_primes_for_thread,
-            &thread_numbers[thread_index]
-        );
-    }
-
-    // Join so main waits until all counting threads finish.
     for (thread_index = 0; thread_index < NUMBER_OF_THREADS; thread_index++) {
         pthread_join(thread_ids[thread_index], NULL);
     }

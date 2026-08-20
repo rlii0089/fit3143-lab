@@ -25,6 +25,7 @@ long *is_prime(long k, long *out_count) {
         return NULL;
     }
 
+    long count = 0;
     for (long i = 2; i < k; i++){
         _Bool isPrime = 1;
         /* avoid calling sqrt() repeatedly; use integer bound */
@@ -36,15 +37,11 @@ long *is_prime(long k, long *out_count) {
         }
         if (isPrime){
             primeArray[i] = 1;
+            count++;
         }
         else {
             primeArray[i] = 0;
         }
-    }
-
-    long count = 0;
-    for (long i = 0; i < k; i++) {
-        if (primeArray[i] == 1) count++;
     }
 
     // intialise array to hold primes

@@ -31,12 +31,14 @@ long *is_prime(long k, long *out_count) {
     }
 
     /*
-    First parallelisation. As each i is independent of every other i
+    Single parallelisation. Each i is independent of every other i
     since it only reads i and j and only updates to the i index of
-    prime array, there is no data races. Dynmamic scheduling is used as
-    the work for a bigger i is more expensive.
+    prime array, so there are no data races on primeArray. count is
+    accumulated, each thread has its own private copy that OpenMP sums 
+    at the end of the loop.
     */
-    #pragma omp parallel for schedule(dynamic, 1) // chunk size adjustable
+    long count = 0;
+    #pragma omp parallel for schedule(dynamic, 1) reduction(+:count)
     for (long i = 2; i < k; i++){
         _Bool isPrime = 1;
 
@@ -48,20 +50,11 @@ long *is_prime(long k, long *out_count) {
         }
         if (isPrime){
             primeArray[i] = 1;
+            count++;
         }
         else {
             primeArray[i] = 0;
         }
-    }
-
-    long count = 0;
-    /*
-    Second parallelisation. Give each thread its own private copu of count
-    and sum them at the end, to avoid race condition on count++.
-    */
-    #pragma omp parallel for reduction(+:count)
-    for (long i = 0; i < k; i++) {
-        if (primeArray[i] == 1) count++;
     }
 
     // intialise array to hold primes
