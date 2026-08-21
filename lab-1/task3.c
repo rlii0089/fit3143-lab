@@ -85,17 +85,10 @@ long *is_prime(long k, long *out_count) {
 }
 
 int main(void) {
-    omp_set_num_threads(8);
     struct timespec start, end, startComp, endComp; 
     double comp_time, total_time;
 
     long n;
-
-    #pragma omp parallel
-    {
-        #pragma omp single
-        printf("Using %d threads\n", omp_get_num_threads());
-    }
 
     printf("Enter n (max 100,000,000): ");
     
@@ -116,6 +109,7 @@ int main(void) {
 
     long prime_count = 0;
     clock_gettime(CLOCK_MONOTONIC, &startComp); 
+    omp_set_num_threads(8);
     long *primes = is_prime(n, &prime_count);
     clock_gettime(CLOCK_MONOTONIC, &endComp); 
 
