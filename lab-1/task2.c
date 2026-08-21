@@ -11,6 +11,14 @@ long upper_limit;
 bool *prime_number_array;
 long partial_counts[NUMBER_OF_THREADS]; 
 
+/*
+ * task2.c
+ * POSIX threads prime finder.
+ * - `is_prime(input_number, &is_prime_count)` spawns `NUMBER_OF_THREADS`
+ *   threads which mark `prime_number_array` in a cyclic partitioning.
+ * - `print_to_file` writes the primes into `primes.txt` (overwrites).
+ */
+
 void print_to_file(long *primes, long prime_count, const char *filename) {
     FILE *output_file = fopen(filename, "w");
 

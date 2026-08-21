@@ -1,7 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 
+/*
+ * task1.c
+ * Single-threaded prime finder.
+ * - `is_prime(input_number, &is_prime_count)` returns a dynamically
+ *   allocated array of primes less than `input_number` and sets
+ *   `is_prime_count` to the number of primes found.
+ * - `print_to_file` writes the primes into `primes.txt` (overwrites).
+ */
+
+/* Print the prime list to `filename`. Overwrites existing file. */
 void print_to_file(long *primes, long prime_count, const char *filename) {
     FILE *output_file = fopen(filename, "w");
 
@@ -16,58 +27,51 @@ void print_to_file(long *primes, long prime_count, const char *filename) {
     printf("Results written to %s\n", filename);
 }
 
-long *is_prime(long k, long *out_count) {
-    // allocate memory for an array of size k, with each element being a _Bool (1 byte)
-    _Bool *primeArray = calloc((size_t)k, sizeof *primeArray);
-    if (primeArray == NULL) {
-        fprintf(stderr, "Memory allocation failed for primeArray\n");
-        *out_count = 0;
+long *is_prime(long input_number, long *is_prime_count) {
+    /* allocate the boolean array on the heap so large inputs don't overflow stack */
+    bool *prime_number_array = calloc((size_t)input_number, sizeof *prime_number_array);
+    if (prime_number_array == NULL) {
+        fprintf(stderr, "Memory allocation failed for prime array\n");
+        *is_prime_count = 0;
         return NULL;
     }
 
     long count = 0;
-    for (long i = 2; i < k; i++){
-        _Bool isPrime = 1;
-        /* avoid calling sqrt() repeatedly; use integer bound */
-        for (long j = 2; j * j <= i; j++){
-            if (i % j == 0){
-                isPrime = 0;
+    for (long number = 2; number < input_number; number++){
+        bool is_prime = true;
+        for (long divisor = 2; divisor * divisor <= number; divisor++){
+            if (number % divisor == 0){
+                is_prime = false;
                 break;
             }
         }
-        if (isPrime){
-            primeArray[i] = 1;
-            count++;
-        }
-        else {
-            primeArray[i] = 0;
-        }
+        prime_number_array[number] = is_prime;
+        if (is_prime) count++;
     }
 
-    // intialise array to hold primes
     if (count == 0) {
-        free(primeArray);
-        *out_count = 0;
+        free(prime_number_array);
+        *is_prime_count = 0;
         return NULL;
     }
 
     long *primes = malloc(sizeof(long) * count);
     if (primes == NULL) {
         fprintf(stderr, "Memory allocation failed for primes array\n");
-        free(primeArray);
-        *out_count = 0;
+        free(prime_number_array);
+        *is_prime_count = 0;
         return NULL;
     }
 
-    long idx = 0;
-    for (long i = 0; i < k; i++) {
-        if (primeArray[i] == 1) {
-            primes[idx++] = i;
+    long index = 0;
+    for (long i = 0; i < input_number; i++) {
+        if (prime_number_array[i] == 1) {
+            primes[index++] = i;
         }
     }
 
-    free(primeArray);
-    *out_count = count;
+    free(prime_number_array);
+    *is_prime_count = count;
     return primes;
 }
 
