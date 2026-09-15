@@ -37,9 +37,15 @@ long *is_prime(long input_number, long *is_prime_count) {
     }
 
     long count = 0;
-    for (long number = 2; number < input_number; number++){
+    
+    if (input_number > 2) {
+        prime_number_array[2] = true;
+        count++;
+    }
+
+    for (long number = 3; number < input_number; number += 2){
         bool is_prime = true;
-        for (long divisor = 2; divisor * divisor <= number; divisor++){
+        for (long divisor = 3; divisor * divisor <= number; divisor += 2){
             if (number % divisor == 0){
                 is_prime = false;
                 break;
