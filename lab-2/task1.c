@@ -75,6 +75,26 @@ long *is_prime(long input_number, long *is_prime_count) {
     return primes;
 }
 
+/*
+ * Workload distribution strategies. We test for which one is the best
+ */
+
+/* Contiguous block allocatoin, where each process gets equal sized block of the work*/
+long *distribute_block(long n, int rank, int size, long *local_count) {
+    return NULL;
+}
+
+/* Cyclic allocation */
+long *distribute_cyclic(long n, int rank, int size, long *local_count) {
+    return NULL;
+}
+
+/* Estimate workload to check if a number, k, is prime to be sqrt(k) 
+We then split blocks by cost instead of by size*/
+long *distribute_weighted(long n, int rank, int size, long *local_count) {
+    return NULL;
+}
+
 int main(int argc, char *argv[]) {
     struct timespec start, end, startComp, endComp; 
     double comp_time, total_time;
