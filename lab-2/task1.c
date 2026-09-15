@@ -1,3 +1,4 @@
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -102,64 +103,42 @@ long *distribute_weighted(long n, int rank, int size, long *local_count) {
 }
 
 int main(int argc, char *argv[]) {
-    struct timespec start, end, startComp, endComp; 
-    double comp_time, total_time;
+    MPI_Init(&argc, &argv);
 
-    long n;
+    int rank;
+    int size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    long n = 0;
 
-    if (argc != 2) {
-        fprintf(stderr, "Incorrect number of arguments. Usage: %s <n>\n", argv[0]);
-        return 1;
-    }
-
-    char *end_ptr;
-    n = strtol(argv[1], &end_ptr, 10); // convert input string to long in base 10
-    if (*end_ptr != '\0') { // makes sure entire string was a number
-        fprintf(stderr, "Error: n must be an integer (got \"%s\")\n", argv[1]);
-        return 1;
-    }
-
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    if (n < 2) {
-        printf("Please enter a number greater than or equal to 2.\n");
-        return 0;
-    }
-    if (n > 100000000) {
-        fprintf(stderr, "Error: n is too large (max 100,000,000)\n");
-        return 1;
-    }
-
-    long prime_count = 0;
-
-    clock_gettime(CLOCK_MONOTONIC, &startComp); 
-    long *primes = is_prime(n, &prime_count);
-    clock_gettime(CLOCK_MONOTONIC, &endComp); 
-
-    comp_time = (endComp.tv_sec - startComp.tv_sec) * 1e9; 
-    comp_time = (comp_time + (endComp.tv_nsec - startComp.tv_nsec)) * 1e-9;
-
-    if (prime_count == 0) {
-        printf("No primes found or error occurred.\n");
-        return 0;
-    }
-
-    if (n < 100) {
-        printf("Prime numbers that are strictly less than %ld are:\n", n);
-        for (long i = 0; i < prime_count; i++) {
-            printf("%ld ", primes[i]);
+    if (rank == 0) { // serial
+        if (argc != 2) {
+            fprintf(stderr, "Incorrect number of arguments. Usage: %s <n>\n", argv[0]);
+            n = -1; 
+        } else {
+            char *end_ptr;
+            n = strtol(argv[1], &end_ptr, 10); // convert input string to long in base 10
+            if (*end_ptr != '\0') { // makes sure entire string was a number
+                fprintf(stderr, "Error: n must be an integer (got \"%s\")\n", argv[1]);
+                n = -1;
+            } else if (n < 2) {
+                fprintf(stderr, "Error: n must be >= 2 (got \"%s\")\n", argv[1]);
+                n = -1;
+            } else if (n > 100000000) {
+                fprintf(stderr, "Error: n is too large (max 100,000,000)\n");
+                n = -1;
+            }
         }
-        printf("\n");
-    } else {
-        const char *filename = "primes.txt";
-        print_to_file(primes, prime_count, filename);
     }
 
-    free(primes);
+    MPI_Bcast(&n, 1, MPI_LONG, 0, MPI_COMM_WORLD);
 
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    total_time = (end.tv_sec - start.tv_sec) * 1e9;
-    total_time = (total_time + (end.tv_nsec - start.tv_nsec)) * 1e-9;
-    printf("Computation time taken: %f seconds\n", comp_time);
-    printf("Total time taken: %f seconds\n", total_time);
+    if (n < 0) {
+        MPI_Finalize();
+        return 1;
+    }
+    printf("Rank %d of %d received n = %ld\n", rank, size, n);
+
+    MPI_Finalize();
     return 0;
 }
