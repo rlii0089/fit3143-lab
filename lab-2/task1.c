@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <time.h>
+#include <math.h>
 
 /*
  * task1.c
@@ -82,25 +82,80 @@ long *is_prime(long input_number, long *is_prime_count) {
     return primes;
 }
 
+/* returns total number of prime candidates, evens filtered out */
+long total_candidates(long n) {
+    if (n <= 2){
+        return 0;
+    }
+    long odd_count = (n - 2) / 2; // count of odd integers in [3, n)
+    return 1 + odd_count;
+}
+
+/* Maps candidate index back to actual number */
+long candidate_to_number(long index) {
+    if (index == 0) {
+        return 2;
+    }
+    return 2 * index + 1;
+}
+
 /*
- * Workload distribution strategies. We test for which one is the best
+ * Workload distribution strategies. We test for which one is the best.
  */
 
 /* Contiguous block allocatoin, where each process gets equal sized block of the work*/
-long *distribute_block(long n, int rank, int size, long *local_count) {
-    return NULL;
+void distribute_block(long n, int rank, int size, long *start_index, long *stride, long *end_index) {
+    long total = total_candidates(n);
+    long block_size = total / size;
+    long extra = total - block_size * size;
+
+    long start = 0;
+    long count = 0;
+    if (rank == 0) {
+        count = block_size + extra; // we dump any remainders onto first process as it gets the lowest numbers
+    } else {
+        start = (long)rank * block_size + extra ;
+        count = block_size;
+    }
+
+    *start_index = start;
+    *stride = 1;
+    *end_index = start + count;
 }
 
 /* Cyclic allocation */
-long *distribute_cyclic(long n, int rank, int size, long *local_count) {
-    return NULL;
+void distribute_cyclic(long n, int rank, int size, long *start_index, long *stride, long *end_index) {
+    *start_index = rank;
+    *stride = size;
+    *end_index = total_candidates(n);
 }
 
 /* Estimate workload to check if a number, k, is prime to be sqrt(k) 
 We then split blocks by cost instead of by size*/
-long *distribute_weighted(long n, int rank, int size, long *local_count) {
-    return NULL;
+void distribute_weighted(long n, int rank, int size, long *start_index, long *stride, long *end_index) {
+    long total = total_candidates(n);
+    *start_index = weighted_boundary(total, size, rank);
+    *stride = 1;
+    *end_index = weighted_boundary(total, size, rank + 1);
 }
+
+/* returns the weighted boundary for a given rank */
+long weighted_boundary(long total, int size, int r) {
+    if (r <= 0) {
+        return 0;
+    }
+    if (r >= size) {
+        return total;
+    }
+
+    // given we estimate the cost of checking a number k for primality to be sqrt(k), we can use the integral of sqrt(x) 
+    // to estimate the total cost of checking all numbers up to n.
+    double fraction = (double)r / (double)size;
+    double scaled = pow(fraction, 2.0 / 3.0) * (double)total;
+    return (long)(scaled + 0.5); // rounding
+}
+
+
 
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
@@ -137,6 +192,7 @@ int main(int argc, char *argv[]) {
         MPI_Finalize();
         return 1;
     }
+
     printf("Rank %d of %d received n = %ld\n", rank, size, n);
 
     MPI_Finalize();
