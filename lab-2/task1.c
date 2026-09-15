@@ -5,7 +5,7 @@
 
 /*
  * task1.c
- * Single-threaded prime finder.
+ * Single-threaded prime finder (Week 8, Lab 2 base).
  * - `is_prime(input_number, &is_prime_count)` returns a dynamically
  *   allocated array of primes less than `input_number` and sets
  *   `is_prime_count` to the number of primes found.
@@ -75,16 +75,21 @@ long *is_prime(long input_number, long *is_prime_count) {
     return primes;
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
     struct timespec start, end, startComp, endComp; 
     double comp_time, total_time;
 
     long n;
 
-    printf("Enter n (max 100,000,000): ");
-    
-    if (scanf("%ld", &n) != 1) {
-        fprintf(stderr, "Error: failed to read n\n");
+    if (argc != 2) {
+        fprintf(stderr, "Incorrect number of arguments. Usage: %s <n>\n", argv[0]);
+        return 1;
+    }
+
+    char *end_ptr;
+    n = strtol(argv[1], &end_ptr, 10); // convert input string to long in base 10
+    if (*end_ptr != '\0') { // makes sure entire string was a number
+        fprintf(stderr, "Error: n must be an integer (got \"%s\")\n", argv[1]);
         return 1;
     }
 
