@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <math.h>
 
+
+long weighted_boundary(long total, int size, int r);
 /*
  * task1.c
  * Single-threaded prime finder (Week 8, Lab 2 base).
