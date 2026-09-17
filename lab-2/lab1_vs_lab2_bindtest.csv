@@ -1,3 +1,0 @@
-timestamp,jobid,program,n,processes,threads,distribution,schedule,computation_time,total_time,primes_found
-2026-09-17T11:08:13Z,138445,hybrid,100000000,2,1,cyclic,dynamic,53.558387,54.436358,5761455
-2026-09-17T11:09:09Z,138445,hybrid,100000000,2,1,weighted,dynamic,55.497541,55.998293,5761455
