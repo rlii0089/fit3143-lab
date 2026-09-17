@@ -4,9 +4,17 @@ lab-1/task2
 lab-1/task3
 lab-2/task1
 lab-2/task2
+lab-2/task1-mpi
+lab-2/task2-hybrid
+
+*.pdf
+*.html
 
 # Ignore output files
 *.txt
+
+# macOS debug-symbol bundles (e.g. from -g / AddressSanitizer builds)
+*.dSYM/
 
 
 # Common C build artifacts
