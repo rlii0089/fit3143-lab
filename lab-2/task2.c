@@ -13,19 +13,31 @@
  * Hybrid prime search using Open MPI + OpenMP.
  *
  * Usage:
- *   mpirun -np <processes> ./task2 <n> <threads> [block|cyclic|weighted]
+ *   mpirun -np <processes> ./task2 <n> <threads> [block|cyclic|weighted] [static|dynamic|guided]
  *
  * Examples:
  *   mpirun -np 4 ./task2 10000000 2
  *   mpirun -np 4 ./task2 10000000 2 cyclic
+ *   mpirun -np 4 ./task2 10000000 2 weighted guided
  *
- * The default MPI workload distribution is weighted.
+ * The default MPI workload distribution is weighted, default OpenMP
+ * schedule is dynamic.
+ *
+ * OMP_CHUNK_SIZE is fixed to 1024
  */
+
+#define OMP_CHUNK_SIZE 1024
 
 enum Distribution {
     DISTRIBUTION_BLOCK = 0,
     DISTRIBUTION_CYCLIC = 1,
     DISTRIBUTION_WEIGHTED = 2
+};
+
+enum OmpSchedule {
+    OMP_SCHEDULE_STATIC = 0,
+    OMP_SCHEDULE_DYNAMIC = 1,
+    OMP_SCHEDULE_GUIDED = 2
 };
 
 
@@ -258,6 +270,7 @@ int find_local_primes_hybrid(long start_index,
                              long stride,
                              long end_index,
                              int thread_count,
+                             int omp_schedule,
                              long **local_primes_out,
                              long *local_prime_count_out) {
 
@@ -285,18 +298,17 @@ int find_local_primes_hybrid(long start_index,
         return 1;
     }
 
+    if (omp_schedule == OMP_SCHEDULE_STATIC) {
+        omp_set_schedule(omp_sched_static, OMP_CHUNK_SIZE);
+    } else if (omp_schedule == OMP_SCHEDULE_DYNAMIC) {
+        omp_set_schedule(omp_sched_dynamic, OMP_CHUNK_SIZE);
+    } else {
+        omp_set_schedule(omp_sched_guided, OMP_CHUNK_SIZE);
+    }
 
-    /*
-     * Parallelise the prime-search computation between
-     * the OpenMP threads belonging to this MPI process.
-     *
-     * Dynamic scheduling helps balance the workload because
-     * different candidate values can require different numbers
-     * of divisor tests.
-     */
     #pragma omp parallel for \
         num_threads(thread_count) \
-        schedule(dynamic, 64)
+        schedule(runtime)
 
     for (long local_index = 0;
          local_index < local_candidate_count;
@@ -418,6 +430,20 @@ const char *distribution_name(int distribution) {
 }
 
 
+/* Convert OpenMP schedule value to a printable name. */
+const char *omp_schedule_name(int schedule) {
+    if (schedule == OMP_SCHEDULE_STATIC) {
+        return "static";
+    }
+
+    if (schedule == OMP_SCHEDULE_DYNAMIC) {
+        return "dynamic";
+    }
+
+    return "guided";
+}
+
+
 int main(int argc, char *argv[]) {
 
     int provided_thread_level;
@@ -482,6 +508,9 @@ int main(int argc, char *argv[]) {
     int distribution =
         DISTRIBUTION_WEIGHTED;
 
+    int omp_schedule =
+        OMP_SCHEDULE_DYNAMIC;
+
 
     /*
      * Only the root MPI process reads and validates
@@ -492,15 +521,16 @@ int main(int argc, char *argv[]) {
      * argv[1] = n
      * argv[2] = OpenMP threads per MPI process
      * argv[3] = optional MPI workload distribution
+     * argv[4] = optional OpenMP schedule type
      */
     if (rank == 0) {
 
-        if (argc < 3 || argc > 4) {
+        if (argc < 3 || argc > 5) {
 
             fprintf(
                 stderr,
                 "Usage: %s <n> <threads> "
-                "[block|cyclic|weighted]\n",
+                "[block|cyclic|weighted] [static|dynamic|guided]\n",
                 argv[0]
             );
 
@@ -588,7 +618,7 @@ int main(int argc, char *argv[]) {
         /*
          * Optional MPI workload distribution.
          */
-        if (n >= 0 && argc == 4) {
+        if (n >= 0 && argc >= 4) {
 
             if (
                 strcmp(
@@ -629,6 +659,57 @@ int main(int argc, char *argv[]) {
                     stderr,
                     "Error: distribution must be "
                     "block, cyclic, or weighted\n"
+                );
+
+                n = -1;
+            }
+        }
+
+
+        /*
+         * Optional OpenMP schedule type.
+         */
+        if (n >= 0 && argc >= 5) {
+
+            if (
+                strcmp(
+                    argv[4],
+                    "static"
+                ) == 0
+            ) {
+
+                omp_schedule =
+                    OMP_SCHEDULE_STATIC;
+            }
+
+            else if (
+                strcmp(
+                    argv[4],
+                    "dynamic"
+                ) == 0
+            ) {
+
+                omp_schedule =
+                    OMP_SCHEDULE_DYNAMIC;
+            }
+
+            else if (
+                strcmp(
+                    argv[4],
+                    "guided"
+                ) == 0
+            ) {
+
+                omp_schedule =
+                    OMP_SCHEDULE_GUIDED;
+            }
+
+            else {
+
+                fprintf(
+                    stderr,
+                    "Error: omp_schedule must be "
+                    "static, dynamic, or guided\n"
                 );
 
                 n = -1;
@@ -676,6 +757,14 @@ int main(int argc, char *argv[]) {
 
     MPI_Bcast(
         &distribution,
+        1,
+        MPI_INT,
+        0,
+        MPI_COMM_WORLD
+    );
+
+    MPI_Bcast(
+        &omp_schedule,
         1,
         MPI_INT,
         0,
@@ -775,6 +864,7 @@ int main(int argc, char *argv[]) {
             stride,
             end_index,
             thread_count,
+            omp_schedule,
             &local_primes,
             &local_prime_count
         );
@@ -1219,6 +1309,14 @@ int main(int argc, char *argv[]) {
             distribution_name(
                 distribution
             )
+        );
+
+        printf(
+            "OMP schedule: %s (chunk=%d)\n",
+            omp_schedule_name(
+                omp_schedule
+            ),
+            OMP_CHUNK_SIZE
         );
 
         printf(
