@@ -23,7 +23,10 @@
  * The default MPI workload distribution is weighted, default OpenMP
  * schedule is dynamic.
  *
- * OMP_CHUNK_SIZE is fixed to 1024
+ * OMP_CHUNK_SIZE is fixed to 1024. This was found to be a good compromise between overhead and load balancing,
+ * if chunk sise too small, overhead for asking for new work is too high, if chunk size too large, load balacning is poor,
+ * after testing n values ranging from 10,000,000 to 100,000,000, 1024 was found to be a good balance and returned the 
+ * best performance on average.
  */
 
 #define OMP_CHUNK_SIZE 1024
