@@ -6,7 +6,7 @@ lab-2/task1
 lab-2/task2
 lab-2/task1-mpi
 lab-2/serial
-lab-2/graphs/
+
 *.pdf
 *.html
 *.py
