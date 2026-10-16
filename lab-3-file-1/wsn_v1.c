@@ -312,6 +312,21 @@ void process_round_reports(const Config *cfg, int round, int node_count,
 }
 
 /*
+ * Function: sleep_until
+ * Purpose : Sleeps until an absolute time (global_time() seconds), so rounds start
+ *           on a fixed timeline however long each round's messaging took.
+ */
+void sleep_until(double target)
+{
+    double remaining = target - global_time();
+    if (remaining <= 0.0) return;
+    if (remaining < 2000.0)
+        sleep_microseconds((int)(remaining * 1e6));
+    else
+        sleep_milliseconds((int)(remaining * 1e3));
+}
+
+/*
  * Function: broadcast_command
  * Purpose : Base station's RUN/STOP control broadcast to every node.
  */
@@ -384,7 +399,9 @@ void run_base_station(const Config *cfg, int base_rank)
                               last_report_time, last_congested_time, log,
                               &metrics, &stats, recommendations);
 
-        if (round < cfg->rounds) sleep_milliseconds(cfg->interval_ms);
+        // Round r occupies [(r-1) x interval, r x interval), the same timeline as
+        // V2's cycles, so both versions simulate exactly rounds x interval_ms.
+        sleep_until(metrics.start_time + round * (cfg->interval_ms / 1000.0));
     }
 
     // A final explicit MPI control broadcast signals every charging process to exit.
