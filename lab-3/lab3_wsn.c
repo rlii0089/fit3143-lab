@@ -38,6 +38,9 @@
 #define SCENARIO_RANDOM 0
 #define SCENARIO_DEMO 1
 #define SCENARIO_FULL 2
+#define SCENARIO_CORNER 3
+
+#define MAX_PORTS 256              // One OpenMP thread per port, so keep this modest
 
 typedef struct
 {
@@ -47,7 +50,7 @@ typedef struct
     int threshold;
     int rounds;
     int interval_ms;
-    int window_sec;
+    int window_ms;
     int arrival_percent;
     int departure_percent;
     int scenario;
@@ -63,6 +66,7 @@ typedef struct
     uint32_t *random_state;        // Independent random state for each port
     int neighbours[NUM_NEIGHBOURS];
     int free_ports;
+    int port_threads;              // OpenMP threads that actually ran the last update
 } ChargingNode;
 
 typedef struct
@@ -72,6 +76,7 @@ typedef struct
     int col;
     int free_ports;
     int occupied_ports;
+    int port_threads;
     int neighbours[NUM_NEIGHBOURS];
     int neighbour_free[NUM_NEIGHBOURS];
     int requested[NUM_NEIGHBOURS];
@@ -106,18 +111,18 @@ void print_usage(const char *program)
 {
     fprintf(stderr,
         "Usage: %s ROWS COLS [options]\n"
-        "  --ports K              Number of ports at each station (default: 6)\n"
+        "  --ports K              Ports (= OpenMP threads) per station, max %d (default: 6)\n"
         "  --threshold T          Congested when free ports < T (default: 1)\n"
         "  --rounds R             Number of simulation rounds (default: 10)\n"
         "  --interval-ms MS       Delay between rounds in ms (default: 1000)\n"
-        "  --window-sec S         Recent-alert lookup window in seconds (default: 30)\n"
+        "  --window-ms MS         Recent-report lookup window in ms (default: 30000)\n"
         "  --arrival P            Free-to-occupied probability, percent (default: 45)\n"
         "  --departure P          Occupied-to-free probability, percent (default: 35)\n"
-        "  --scenario NAME        random | demo | full (default: random)\n"
+        "  --scenario NAME        random | demo | corner | full (default: random)\n"
         "  --seed N               Random seed (default: 12345)\n"
         "  --log PATH             Base-station output file (default: base_station.log)\n"
         "Example: mpirun -np 10 %s 3 3 --ports 6 --rounds 5 --scenario demo\n",
-        program, program);
+        program, MAX_PORTS, program);
 }
 
 /*
@@ -153,7 +158,7 @@ int parse_config(int argc, char *argv[], Config *cfg)
     cfg->threshold = 1;
     cfg->rounds = 10;
     cfg->interval_ms = 1000;
-    cfg->window_sec = 30;
+    cfg->window_ms = 30000;
     cfg->arrival_percent = 45;
     cfg->departure_percent = 35;
     cfg->seed = 12345;
@@ -174,7 +179,7 @@ int parse_config(int argc, char *argv[], Config *cfg)
 
         if (strcmp(option, "--ports") == 0)
         {
-            if (!parse_integer(value, 1, 10000, &cfg->ports)) return 0;
+            if (!parse_integer(value, 1, MAX_PORTS, &cfg->ports)) return 0;
         }
         else if (strcmp(option, "--threshold") == 0)
         {
@@ -188,9 +193,9 @@ int parse_config(int argc, char *argv[], Config *cfg)
         {
             if (!parse_integer(value, 0, 3600000, &cfg->interval_ms)) return 0;
         }
-        else if (strcmp(option, "--window-sec") == 0)
+        else if (strcmp(option, "--window-ms") == 0)
         {
-            if (!parse_integer(value, 1, 86400, &cfg->window_sec)) return 0;
+            if (!parse_integer(value, 0, 86400000, &cfg->window_ms)) return 0;
         }
         else if (strcmp(option, "--arrival") == 0)
         {
@@ -209,6 +214,7 @@ int parse_config(int argc, char *argv[], Config *cfg)
             if (strcmp(value, "random") == 0) cfg->scenario = SCENARIO_RANDOM;
             else if (strcmp(value, "demo") == 0) cfg->scenario = SCENARIO_DEMO;
             else if (strcmp(value, "full") == 0) cfg->scenario = SCENARIO_FULL;
+            else if (strcmp(value, "corner") == 0) cfg->scenario = SCENARIO_CORNER;
             else return 0;
         }
         else if (strcmp(option, "--log") == 0)
@@ -294,34 +300,45 @@ void initialise_node(ChargingNode *node, const Config *cfg, MPI_Comm cart_comm)
         node->random_state[i] = (s == 0) ? UINT32_C(1) : s;
         node->port_status[i] = ((next_random(&node->random_state[i]) % 100U) < 60U);
     }
+
+    // Stop the OpenMP runtime from silently giving us fewer threads than ports.
+    omp_set_dynamic(0);
 }
 
 /*
  * Function: update_charging_ports
  * Purpose : Uses OpenMP to simulate arrivals/departures at all charging ports.
- *           Each loop iteration updates one unique entry in the shared array.
- *           The reduction safely counts free ports after the updates complete.
+ *           Exactly one thread per port (k threads for k ports), so each thread
+ *           updates one unique entry in the shared array. The reduction safely
+ *           counts free ports after the updates complete.
  */
 void update_charging_ports(ChargingNode *node, const Config *cfg, int round)
 {
     int free_count = 0;
-    int number_of_threads = omp_get_max_threads();
     int row = node->coords[0], col = node->coords[1];
     int distance_from_centre = abs(row - cfg->rows / 2) + abs(col - cfg->cols / 2);
-    if (number_of_threads > cfg->ports) number_of_threads = cfg->ports;
+    // demo:   centre node + its direct neighbours are full.
+    // corner: Node 0 + its direct neighbours (Nodes 1, 3) are full, matching
+    //         the specification's base-station example.
+    int in_full_region = (cfg->scenario == SCENARIO_DEMO) ? (distance_from_centre <= 1)
+                                                          : (row + col <= 1);
 
-    #pragma omp parallel for num_threads(number_of_threads) reduction(+:free_count) schedule(static)
+    #pragma omp parallel for num_threads(cfg->ports) reduction(+:free_count) schedule(static)
     for (int port = 0; port < cfg->ports; port++)
     {
+        // Only thread 0 writes, so no race; read after the implicit barrier.
+        if (omp_get_thread_num() == 0)
+            node->port_threads = omp_get_num_threads();
+
         if (cfg->scenario == SCENARIO_FULL)
         {
             node->port_status[port] = 1;
         }
-        else if (cfg->scenario == SCENARIO_DEMO)
+        else if (cfg->scenario == SCENARIO_DEMO || cfg->scenario == SCENARIO_CORNER)
         {
-            // Middle + direct neighbours are full; farther nodes have spare ports.
+            // Full region stays full; farther nodes have spare ports.
             // Rotate the free port(s) to demonstrate the shared array changing.
-            if (distance_from_centre <= 1)
+            if (in_full_region)
                 node->port_status[port] = 1;
             else
                 node->port_status[port] = ((port + round) % cfg->ports >= cfg->threshold);
@@ -364,6 +381,7 @@ void exchange_neighbour_availability(ChargingNode *node, const Config *cfg,
     report->col = node->coords[1];
     report->free_ports = node->free_ports;
     report->occupied_ports = cfg->ports - node->free_ports;
+    report->port_threads = node->port_threads;
     report->congested = (node->free_ports < cfg->threshold);
     report->redirect_rank = -1;
     current_timestamp(report->timestamp, TIME_LEN);
@@ -478,6 +496,16 @@ void run_charging_node(const Config *cfg, MPI_Comm cart_comm, int base_rank)
     int command, round = 0;
     initialise_node(&node, cfg, cart_comm);
 
+    // Shows the virtual topology is correct (-1 = no neighbour on that side).
+    printf("[Node %d] coord=(%d,%d) neighbours top=%d bottom=%d left=%d right=%d ports=%d\n",
+           node.rank, node.coords[0], node.coords[1],
+           node.neighbours[TOP] < 0 ? -1 : node.neighbours[TOP],
+           node.neighbours[BOTTOM] < 0 ? -1 : node.neighbours[BOTTOM],
+           node.neighbours[LEFT] < 0 ? -1 : node.neighbours[LEFT],
+           node.neighbours[RIGHT] < 0 ? -1 : node.neighbours[RIGHT],
+           cfg->ports);
+    fflush(stdout);
+
     while (1)
     {
         // All world ranks participate in the base station's RUN/STOP broadcast.
@@ -528,19 +556,37 @@ void record_neighbours(FILE *log, const NodeReport *report)
 }
 
 /*
+ * Function: is_recent
+ * Purpose : Returns 1 when an event (MPI_Wtime seconds, -1 = never) happened
+ *           within the base station's predefined report window.
+ */
+int is_recent(double event_time, double now, const Config *cfg)
+{
+    return event_time >= 0.0 && (now - event_time) * 1000.0 <= (double)cfg->window_ms;
+}
+
+/*
  * Function: find_alternative_nodes
- * Purpose : Implements Task 2's recent-report time-window rule. If ALL direct
- *           neighbours sent congestion alerts recently, it reports no nearby
- *           candidates. Otherwise, it scans the latest charging-node snapshots,
- *           selects the minimum Manhattan distance, and includes EVERY tied
- *           available node. The supplied result array needs one slot per node.
- * Returns : Number of suggested nodes, possibly zero.
+ * Purpose : Implements Task 2's information update mechanism using ONLY the
+ *           congestion reports received by the base station:
+ *           1. If EVERY direct neighbour of the reporter has itself reported
+ *              within the window, its whole neighbourhood is known to be full,
+ *              so there are no nodes available nearby (returns 0).
+ *           2. Otherwise the candidates are the nodes two hops away (e.g. Node 0
+ *              -> Nodes 2, 4, 6 in a 3x3 grid). A candidate is skipped if a
+ *              report within the window showed it congested (either as the
+ *              reporter or as one of a reporter's neighbours).
+ *           3. ALL remaining candidates at the minimum Euclidean distance are
+ *              returned, e.g. Node 4 (diagonal, sqrt 2) beats Nodes 2 and 6
+ *              (straight, 2); if Node 4 is full, both 2 and 6 are reported.
+ * Returns : Number of suggested nodes written to results (at most 8).
  */
 int find_alternative_nodes(const Config *cfg, const NodeReport *report,
-                           const NodeReport *snapshots, const double *last_alert_time,
-                           double now, int node_count, int *results, int *recent_count)
+                           const double *last_report_time,
+                           const double *last_congested_time,
+                           double now, int *results, int *recent_count)
 {
-    int i, min_distance = INT_MAX, result_count = 0, neighbours = 0;
+    int i, dr, dc, result_count = 0, neighbours = 0, min_distance_sq = INT_MAX;
     *recent_count = 0;
 
     for (i = 0; i < NUM_NEIGHBOURS; i++)
@@ -548,8 +594,7 @@ int find_alternative_nodes(const Config *cfg, const NodeReport *report,
         int rank = report->neighbours[i];
         if (rank == MPI_PROC_NULL) continue;
         neighbours++;
-        if (last_alert_time[rank] >= 0.0 &&
-            (now - last_alert_time[rank]) <= (double)cfg->window_sec)
+        if (is_recent(last_report_time[rank], now, cfg))
             (*recent_count)++;
     }
 
@@ -558,20 +603,28 @@ int find_alternative_nodes(const Config *cfg, const NodeReport *report,
     if (neighbours > 0 && *recent_count == neighbours)
         return 0;
 
-    for (i = 0; i < node_count; i++)
+    for (dr = -2; dr <= 2; dr++)
     {
-        int distance;
-        if (i == report->rank || snapshots[i].free_ports < cfg->threshold)
-            continue;
-        distance = abs(report->row - snapshots[i].row) +
-                   abs(report->col - snapshots[i].col);
-        if (distance < min_distance)
+        for (dc = -2; dc <= 2; dc++)
         {
-            min_distance = distance;
-            result_count = 0;
+            int row = report->row + dr, col = report->col + dc;
+            int rank, distance_sq;
+            if (abs(dr) + abs(dc) != 2) continue;  // only nodes two hops away
+            if (row < 0 || row >= cfg->rows || col < 0 || col >= cfg->cols) continue;
+
+            // Row-major Cartesian rank, as created by MPI_Cart_create (reorder = 0).
+            rank = row * cfg->cols + col;
+            if (is_recent(last_congested_time[rank], now, cfg)) continue;
+
+            distance_sq = dr * dr + dc * dc;       // 2 = diagonal, 4 = straight
+            if (distance_sq < min_distance_sq)
+            {
+                min_distance_sq = distance_sq;
+                result_count = 0;
+            }
+            if (distance_sq == min_distance_sq)
+                results[result_count++] = rank;
         }
-        if (distance == min_distance)
-            results[result_count++] = i;
     }
     return result_count;
 }
@@ -583,9 +636,9 @@ int find_alternative_nodes(const Config *cfg, const NodeReport *report,
  *           All MPI calls are performed by the base station's main thread.
  */
 void process_round_reports(const Config *cfg, int round, int node_count,
-                           const NodeReport *snapshots, double *last_alert_time,
-                           FILE *log, BaseMetrics *metrics,
-                           int *recommendations)
+                           const NodeReport *snapshots, double *last_report_time,
+                           double *last_congested_time, FILE *log,
+                           BaseMetrics *metrics, int *recommendations)
 {
     int i, j;
     double now = MPI_Wtime();
@@ -593,14 +646,21 @@ void process_round_reports(const Config *cfg, int round, int node_count,
     long long round_neighbour_messages = 0;
 
     // Make all incident reports from this round visible before giving advice.
+    // Only records with alert=1 count as reports: MPI_Gather needs every rank to
+    // contribute, but the base station's knowledge comes from alerts alone.
     for (i = 0; i < node_count; i++)
     {
-        if (snapshots[i].alert)
-        {
-            last_alert_time[i] = now;
-            round_alerts++;
-        }
-        round_neighbour_messages += snapshots[i].neighbour_messages_sent;
+        const NodeReport *r = &snapshots[i];
+        round_neighbour_messages += r->neighbour_messages_sent;
+        if (!r->alert) continue;
+
+        round_alerts++;
+        last_report_time[r->rank] = now;
+        // An alert means the reporter AND all of its neighbours were congested.
+        last_congested_time[r->rank] = now;
+        for (j = 0; j < NUM_NEIGHBOURS; j++)
+            if (r->neighbours[j] != MPI_PROC_NULL)
+                last_congested_time[r->neighbours[j]] = now;
     }
     metrics->total_alerts += round_alerts;
     metrics->total_neighbour_messages += round_neighbour_messages;
@@ -614,12 +674,12 @@ void process_round_reports(const Config *cfg, int round, int node_count,
     {
         const NodeReport *r = &snapshots[i];
         fprintf(log, "NODE rank=%d coord=(%d,%d) time=%s free=%d occupied=%d "
-                     "congested=%d alert=%d redirect_neighbour=%d "
+                     "port_threads=%d congested=%d alert=%d redirect_neighbour=%d "
                      "incoming_requests=%d neighbour_messages_sent=%d "
                      "neighbour_messages_received=%d neighbour_bytes_sent=%d "
                      "neighbour_bytes_received=%d exchange_time_sec=%.9f\n",
                 r->rank, r->row, r->col, r->timestamp, r->free_ports, r->occupied_ports,
-                r->congested, r->alert, r->redirect_rank, r->incoming_requests,
+                r->port_threads, r->congested, r->alert, r->redirect_rank, r->incoming_requests,
                 r->neighbour_messages_sent, r->neighbour_messages_received,
                 r->neighbour_bytes_sent, r->neighbour_bytes_received,
                 r->neighbour_exchange_seconds);
@@ -639,9 +699,9 @@ void process_round_reports(const Config *cfg, int round, int node_count,
         const NodeReport *r = &snapshots[i];
         int candidate_count, recent_count;
         if (!r->alert) continue;
-        candidate_count = find_alternative_nodes(cfg, r, snapshots, last_alert_time,
-                                                  now, node_count, recommendations,
-                                                  &recent_count);
+        candidate_count = find_alternative_nodes(cfg, r, last_report_time,
+                                                  last_congested_time, now,
+                                                  recommendations, &recent_count);
         fprintf(log, "  ADVICE to_node=%d recent_neighbour_alerts=%d count=%d nearest_nodes=",
                 r->rank, recent_count, candidate_count);
         if (candidate_count == 0) fprintf(log, "none");
@@ -681,7 +741,8 @@ void run_base_station(const Config *cfg, int base_rank)
     int round, command;
     FILE *log = fopen(cfg->log_path, "w");
     NodeReport *snapshots = NULL;
-    double *last_alert_time = NULL;
+    double *last_report_time = NULL;     // When each node last sent an alert report
+    double *last_congested_time = NULL;  // When a report last showed a node congested
     int *recommendations = NULL;
     BaseMetrics metrics;
     memset(&metrics, 0, sizeof(metrics));
@@ -693,23 +754,31 @@ void run_base_station(const Config *cfg, int base_rank)
     }
     // MPI_Gather includes the base station as its final sender, so reserve N+1 slots.
     snapshots = (NodeReport *)calloc((size_t)node_count + 1U, sizeof(NodeReport));
-    last_alert_time = (double *)malloc((size_t)node_count * sizeof(double));
+    last_report_time = (double *)malloc((size_t)node_count * sizeof(double));
+    last_congested_time = (double *)malloc((size_t)node_count * sizeof(double));
     recommendations = (int *)malloc((size_t)node_count * sizeof(int));
-    if (snapshots == NULL || last_alert_time == NULL || recommendations == NULL)
+    if (snapshots == NULL || last_report_time == NULL || last_congested_time == NULL ||
+        recommendations == NULL)
     {
         fprintf(stderr, "[Base] Memory allocation error.\n");
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     }
-    for (int i = 0; i < node_count; i++) last_alert_time[i] = -1.0;
+    for (int i = 0; i < node_count; i++)
+    {
+        last_report_time[i] = -1.0;
+        last_congested_time[i] = -1.0;
+    }
 
     metrics.start_time = MPI_Wtime();
     fprintf(log, "FIT3143 Lab 3 - Base Station Log\n");
     fprintf(log, "grid=%dx%d ports=%d threshold=%d rounds=%d interval_ms=%d "
-                 "window_sec=%d scenario=%d seed=%d\n",
+                 "window_ms=%d scenario=%d seed=%d\n",
             cfg->rows, cfg->cols, cfg->ports, cfg->threshold, cfg->rounds,
-            cfg->interval_ms, cfg->window_sec, cfg->scenario, cfg->seed);
+            cfg->interval_ms, cfg->window_ms, cfg->scenario, cfg->seed);
     fprintf(log, "Note: neighbour_message_slots counts logical per-neighbour integer "
                  "payloads, not MPI's internal collective packets.\n");
+    fprintf(log, "Note: advice uses only alert reports (alert=1); other gathered "
+                 "records are logged for reference only.\n");
 
     for (round = 1; round <= cfg->rounds; round++)
     {
@@ -723,8 +792,8 @@ void run_base_station(const Config *cfg, int base_rank)
                    snapshots, (int)sizeof(empty_report), MPI_BYTE,
                    base_rank, MPI_COMM_WORLD);
         process_round_reports(cfg, round, node_count, snapshots,
-                              last_alert_time, log, &metrics,
-                              recommendations);
+                              last_report_time, last_congested_time, log,
+                              &metrics, recommendations);
 
         if (round < cfg->rounds) sleep_milliseconds(cfg->interval_ms);
     }
@@ -751,7 +820,8 @@ void run_base_station(const Config *cfg, int base_rank)
            cfg->rounds, metrics.total_alerts, cfg->log_path);
     fflush(stdout);
     free(recommendations);
-    free(last_alert_time);
+    free(last_congested_time);
+    free(last_report_time);
     free(snapshots);
 }
 

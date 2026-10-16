@@ -2,7 +2,7 @@
 set -euo pipefail
 
 make
-export OMP_NUM_THREADS="${OMP_NUM_THREADS:-2}"
+# One OpenMP thread per port is set in the code, so OMP_NUM_THREADS is not needed.
 mpirun -np 10 ./lab3_wsn 3 3 --ports 6 --threshold 1 \
-    --rounds 5 --interval-ms 1000 --window-sec 30 \
+    --rounds 5 --interval-ms 1000 --window-ms 30000 \
     --scenario demo --log base_station.log
