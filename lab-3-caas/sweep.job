@@ -1,0 +1,48 @@
+#!/bin/bash
+# Task 3 sweep: runs V1 and V2 on every grid (or line) size and appends one CSV
+# row per run to results/<grid|line>.csv.
+#   sbatch sweep.job grid     34 grid shapes, 2x2 ... 5x6
+#   sbatch sweep.job line     30 line sizes, 1x2 ... 1x31
+# Each job = one repetition (~4-5 min). Submit it several times for repeats;
+# jobs queue and run one after another, each with a different seed.
+#SBATCH --job-name=wsn_sweep
+#SBATCH --time=00:10:00
+#SBATCH --mem=16G
+#SBATCH --ntasks=32                  ### CAAS maximum: up to 31 nodes + base station
+#SBATCH --cpus-per-task=1
+#SBATCH --ntasks-per-node=16         ### 2 machines, so messages cross the network
+#SBATCH --partition=defq
+
+module load openmpi/4.1.5-gcc-11.2.0-ux65npg
+# Idle OpenMP port threads sleep instead of spinning, so they do not steal the
+# MPI thread's core (each MPI process is given 1 core).
+export OMP_WAIT_POLICY=PASSIVE
+
+MODE=${1:-grid}
+SEED=${SLURM_JOB_ID:-1}
+COMMON_ARGS="--threshold 3 --rounds 100 --interval-ms 10 --seed $SEED"
+mkdir -p results logs
+
+SHAPES=()
+if [ "$MODE" = "line" ]; then
+    for n in $(seq 2 31); do SHAPES+=("1 $n"); done
+else
+    for m in 2 3 4 5; do
+        for n in $(seq 2 15); do
+            [ $((m * n)) -le 31 ] && SHAPES+=("$m $n")
+        done
+    done
+fi
+
+echo "mode=$MODE shapes=${#SHAPES[@]} seed=$SEED"
+for shape in "${SHAPES[@]}"; do
+    set -- $shape
+    np=$(($1 * $2 + 1))
+    for v in 1 2; do
+        srun -n $np ../lab-3-file-$v/wsn_v$v $1 $2 $COMMON_ARGS \
+            --log logs/${MODE}_v${v}_${1}x${2}.log \
+            --csv results/$MODE.csv > /dev/null 2>&1 \
+            || echo "FAILED: V$v ${1}x${2}"
+    done
+    echo "done ${1}x${2}"
+done

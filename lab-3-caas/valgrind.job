@@ -1,0 +1,50 @@
+#!/bin/bash
+# Memory check of V2's graceful shutdown (3x3 grid, 10 MPI processes).
+# Open MPI's own libraries make valgrind report thousands of issues, so this
+# job reports only the records whose top stack frames are in OUR source files.
+# Submit from this folder:  sbatch valgrind.job
+#SBATCH --job-name=wsn_valgrind
+#SBATCH --time=00:10:00
+#SBATCH --mem=16G
+#SBATCH --ntasks=10
+#SBATCH --cpus-per-task=1
+#SBATCH --ntasks-per-node=5
+#SBATCH --partition=defq
+
+module load openmpi/4.1.5-gcc-11.2.0-ux65npg
+# Idle OpenMP port threads sleep instead of spinning, so they do not steal the
+# MPI thread's core (each MPI process is given 1 core).
+export OMP_WAIT_POLICY=PASSIVE
+
+# Debug build (-g -O0) so valgrind can show our file names and line numbers.
+mpicc -std=c11 -g -O0 -fopenmp -I../lab-3-common ../lab-3-file-2/wsn_v2.c \
+    ../lab-3-common/common.c -o wsn_v2_debug || exit 1
+
+# Open MPI ships a suppression file for its known valgrind noise.
+SUPP="$(dirname "$(which mpicc)")/../share/openmpi/openmpi-valgrind.supp"
+SUPP_ARG=""
+[ -f "$SUPP" ] && SUPP_ARG="--suppressions=$SUPP" && echo "Using $SUPP"
+
+rm -rf valgrind && mkdir valgrind
+srun -n 10 valgrind --leak-check=full --num-callers=30 $SUPP_ARG \
+    --log-file=valgrind/vg.%p.log \
+    ./wsn_v2_debug 3 3 --scenario corner --rounds 3 --interval-ms 200 \
+    --log valgrind/run.log > valgrind/stdout.txt 2>&1
+echo "Run finished: $(grep -c 'Graceful shutdown' valgrind/stdout.txt)/9 nodes shut down gracefully"
+
+echo
+echo "===== Issues whose allocation/fault site is in OUR code (wsn_v2.c, common.c) ====="
+# A record starts with its header line; the first two stack frames are the
+# fault site (or allocator + its direct caller). Report the record if either
+# frame is in our files.
+awk '
+    /definitely lost in|possibly lost in|Invalid (read|write|free)|uninitialised|Conditional jump|Mismatched/ \
+        { header = $0; frame = 0; inrec = 1; next }
+    inrec && /^==[0-9]+== *$/ { inrec = 0; next }
+    inrec { frame++; if (frame <= 2 && /(wsn_v2|common)\.c/) { print FILENAME ": " header; print "    " $0; found = 1; inrec = 0 } }
+    END { if (!found) print "NONE - every reported issue originates inside the MPI/OpenMP libraries" }
+' valgrind/vg.*.log
+
+echo
+echo "===== Totals per process (mostly library noise) ====="
+grep -h -E "definitely lost:|ERROR SUMMARY" valgrind/vg.*.log
