@@ -279,6 +279,7 @@ int wsn_init(int *argc, char ***argv, const char *version, Config *cfg,
         printf("[Base] %s: grid %d x %d, ports/node=%d, MPI processes=%d.\n",
                version, cfg->rows, cfg->cols, cfg->ports, world_size);
         fflush(stdout);
+        MPI_Barrier(MPI_COMM_WORLD);       // Matches the nodes' start barrier below
         return ROLE_BASE;
     }
 
@@ -293,6 +294,17 @@ int wsn_init(int *argc, char ***argv, const char *version, Config *cfg,
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     }
     MPI_Comm_free(&nodes_comm);    // The Cartesian communicator does not depend on it
+
+    // Warm-up: the first message between two processes (especially on different
+    // machines) pays a one-off connection set-up. Exchange one value with every
+    // neighbour now (node <-> base pairs were already used by the clock sync),
+    // so that cost is not counted as communication delay in any version.
+    {
+        int warm_out = world_rank, warm_in[NUM_NEIGHBOURS];
+        MPI_Neighbor_allgather(&warm_out, 1, MPI_INT, warm_in, 1, MPI_INT, *cart_comm);
+    }
+    // Everyone starts the simulation together.
+    MPI_Barrier(MPI_COMM_WORLD);
     return ROLE_NODE;
 }
 
@@ -378,6 +390,11 @@ void initialise_node(ChargingNode *node, const Config *cfg, MPI_Comm cart_comm)
 
     // Stop the OpenMP runtime from silently giving us fewer threads than ports.
     omp_set_dynamic(0);
+
+    // Warm-up: create the OpenMP thread team now, so its one-off start-up cost
+    // is not counted inside the first round's communication timing.
+    #pragma omp parallel num_threads(cfg->ports)
+    { }
 }
 
 /*

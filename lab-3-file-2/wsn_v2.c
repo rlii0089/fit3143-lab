@@ -317,7 +317,9 @@ void run_charging_node(const Config *cfg, MPI_Comm cart_comm, int base_rank)
     while (!done)
     {
         double now = global_time();
-        if (!st.terminating && now >= next_cycle)
+        // Exactly --rounds cycles (same workload as V1); then just keep
+        // servicing neighbours until TERM arrives.
+        if (!st.terminating && st.cycle < cfg->rounds && now >= next_cycle)
         {
             st.cycle++;
             st.stats.cycles++;
