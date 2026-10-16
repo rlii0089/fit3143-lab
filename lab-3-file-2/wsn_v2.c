@@ -168,6 +168,10 @@ void finish_neighbour_round(NodeState *st, const Config *cfg, int base_rank)
     int i, redirect, neighbour_free[NUM_NEIGHBOURS];
     double exchange_seconds = global_time() - st->request_start;
 
+    // One sample per completed exchange (until ALL neighbours replied), exactly
+    // what V1 measures around its two neighbour collectives.
+    stats_record(&st->stats, DELAY_NBR_RTT, exchange_seconds);
+
     // Our requests were all received (each neighbour replied), so these complete.
     MPI_Waitall(NUM_NEIGHBOURS, st->request_send, MPI_STATUSES_IGNORE);
     st->awaiting_neighbours = 0;
@@ -240,7 +244,6 @@ void check_neighbour_responses(NodeState *st, const Config *cfg, int base_rank)
     {
         int i = indices[k];
         stats_record(&st->stats, DELAY_NBR_RESP, now - st->response_in[i].sent_at);
-        stats_record(&st->stats, DELAY_NBR_RTT, now - st->request_start);
         st->responses_pending--;
     }
     if (st->responses_pending == 0)

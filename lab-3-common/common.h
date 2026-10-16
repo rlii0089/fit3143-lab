@@ -139,7 +139,7 @@ enum DelayType
 {
     DELAY_NBR_REQ,                 // neighbour request, one-way (at the neighbour)
     DELAY_NBR_RESP,                // neighbour response, one-way (at the requester)
-    DELAY_NBR_RTT,                 // request sent -> response received (requester)
+    DELAY_NBR_RTT,                 // exchange start -> ALL neighbours replied (requester)
     DELAY_REPORT,                  // congestion report, one-way (at the base station)
     DELAY_ADVICE,                  // base-station advice, one-way (at the node)
     DELAY_REPORT_RTT,              // report sent -> advice received (node)
