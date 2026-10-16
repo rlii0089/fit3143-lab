@@ -6,13 +6,16 @@ lab-2/task1
 lab-2/task2
 lab-2/task1-mpi
 lab-2/serial
-lab-3/lab3_wsn
+lab-3-file-1/lab3_wsn
+lab-3-file-1/wsn_v1
+lab-3-file-2/wsn_v2
 
 *.pdf
 *.html
 *.py
 # Ignore output files
 *.txt
+*.log
 
 # macOS debug-symbol bundles (e.g. from -g / AddressSanitizer builds)
 *.dSYM/
