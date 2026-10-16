@@ -1,0 +1,13 @@
+# FIT3143 Lab 3, Version 3. Uses your existing common.c and common.h.
+MPICC ?= mpicc
+CFLAGS ?= -std=c11 -O2 -Wall -Wextra -fopenmp
+REFRESH_MS ?= 10000
+
+all: wsn_v3
+
+wsn_v3: wsn_v3.c common.c common.h
+	$(MPICC) $(CFLAGS) -DV3_REPORT_REFRESH_MS=$(REFRESH_MS) common.c wsn_v3.c -o wsn_v3
+
+clean:
+	rm -f wsn_v3
+.PHONY: all clean

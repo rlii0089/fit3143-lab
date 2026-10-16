@@ -1,104 +1,73 @@
-FIT3143 Lab 3 - Base Station Log
-grid=3x3 ports=6 threshold=1 rounds=5 interval_ms=1000 window_ms=30000 scenario=1 seed=12345
+FIT3143 Lab 3 - Base Station Log (V1)
+grid=3x3 ports=6 threshold=1 rounds=3 interval_ms=500 window_ms=30000 poll_us=100 scenario=3 seed=12345
 Note: neighbour_message_slots counts logical per-neighbour integer payloads, not MPI's internal collective packets.
 Note: advice uses only alert reports (alert=1); other gathered records are logged for reference only.
 
 ================ ROUND 1 ================
-simulation_elapsed_sec=0.003029 alerts=1 neighbour_message_slots=48
-NODE rank=0 coord=(0,0) time=2026-10-16 17:12:44 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000321000
-NODE rank=1 coord=(0,1) time=2026-10-16 17:12:44 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=0 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000554000
-NODE rank=2 coord=(0,2) time=2026-10-16 17:12:44 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000405000
-NODE rank=3 coord=(1,0) time=2026-10-16 17:12:44 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=0 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000454000
-NODE rank=4 coord=(1,1) time=2026-10-16 17:12:44 free=0 occupied=6 port_threads=6 congested=1 alert=1 redirect_neighbour=-1 incoming_requests=4 neighbour_messages_sent=8 neighbour_messages_received=8 neighbour_bytes_sent=32 neighbour_bytes_received=32 exchange_time_sec=0.000011000
-  ALERT incident_time=2026-10-16 17:12:44 sender_rank=4 sender_coord=(1,1) sender_free_ports=0
-    top    node=1 free_ports=0 request=1
-    bottom node=7 free_ports=0 request=1
-    left   node=3 free_ports=0 request=1
-    right  node=5 free_ports=0 request=1
-NODE rank=5 coord=(1,2) time=2026-10-16 17:12:44 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=2 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000601000
-NODE rank=6 coord=(2,0) time=2026-10-16 17:12:44 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000599000
-NODE rank=7 coord=(2,1) time=2026-10-16 17:12:44 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=6 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000866000
-NODE rank=8 coord=(2,2) time=2026-10-16 17:12:44 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000832000
-  ADVICE to_node=4 recent_neighbour_alerts=0 count=4 nearest_nodes=0,2,6,8
+simulation_elapsed_sec=0.001328 alerts=1 neighbour_message_slots=48
+NODE rank=0 coord=(0,0) time=2026-10-16 18:17:08 free=0 occupied=6 port_threads=6 congested=1 alert=1 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000102000
+  ALERT incident_time=2026-10-16 18:17:08 sender_rank=0 sender_coord=(0,0) sender_free_ports=0
+    bottom node=3 free_ports=0 request=1
+    right  node=1 free_ports=0 request=1
+NODE rank=1 coord=(0,1) time=2026-10-16 18:17:08 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=2 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000006000
+NODE rank=2 coord=(0,2) time=2026-10-16 18:17:08 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=1 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000043000
+NODE rank=3 coord=(1,0) time=2026-10-16 18:17:08 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=4 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000151000
+NODE rank=4 coord=(1,1) time=2026-10-16 18:17:08 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=8 neighbour_messages_received=8 neighbour_bytes_sent=32 neighbour_bytes_received=32 exchange_time_sec=0.000104000
+NODE rank=5 coord=(1,2) time=2026-10-16 18:17:08 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=0 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000103000
+NODE rank=6 coord=(2,0) time=2026-10-16 18:17:08 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=1 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000068000
+NODE rank=7 coord=(2,1) time=2026-10-16 18:17:08 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=0 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000024000
+NODE rank=8 coord=(2,2) time=2026-10-16 18:17:08 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=0 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000041000
+  ADVICE to_node=0 recent_neighbour_alerts=0 count=1 nearest_nodes=4
 
 ================ ROUND 2 ================
-simulation_elapsed_sec=1.007314 alerts=1 neighbour_message_slots=48
-NODE rank=0 coord=(0,0) time=2026-10-16 17:12:45 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000797000
-NODE rank=1 coord=(0,1) time=2026-10-16 17:12:45 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=0 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000085000
-NODE rank=2 coord=(0,2) time=2026-10-16 17:12:45 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000057000
-NODE rank=3 coord=(1,0) time=2026-10-16 17:12:45 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=0 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000789000
-NODE rank=4 coord=(1,1) time=2026-10-16 17:12:45 free=0 occupied=6 port_threads=6 congested=1 alert=1 redirect_neighbour=-1 incoming_requests=4 neighbour_messages_sent=8 neighbour_messages_received=8 neighbour_bytes_sent=32 neighbour_bytes_received=32 exchange_time_sec=0.000782000
-  ALERT incident_time=2026-10-16 17:12:45 sender_rank=4 sender_coord=(1,1) sender_free_ports=0
-    top    node=1 free_ports=0 request=1
-    bottom node=7 free_ports=0 request=1
-    left   node=3 free_ports=0 request=1
-    right  node=5 free_ports=0 request=1
-NODE rank=5 coord=(1,2) time=2026-10-16 17:12:45 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=2 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000048000
-NODE rank=6 coord=(2,0) time=2026-10-16 17:12:45 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000015000
-NODE rank=7 coord=(2,1) time=2026-10-16 17:12:45 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=6 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000788000
-NODE rank=8 coord=(2,2) time=2026-10-16 17:12:45 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000795000
-  ADVICE to_node=4 recent_neighbour_alerts=0 count=4 nearest_nodes=0,2,6,8
+simulation_elapsed_sec=0.504870 alerts=1 neighbour_message_slots=48
+NODE rank=0 coord=(0,0) time=2026-10-16 18:17:09 free=0 occupied=6 port_threads=6 congested=1 alert=1 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.002941000
+  ALERT incident_time=2026-10-16 18:17:09 sender_rank=0 sender_coord=(0,0) sender_free_ports=0
+    bottom node=3 free_ports=0 request=1
+    right  node=1 free_ports=0 request=1
+NODE rank=1 coord=(0,1) time=2026-10-16 18:17:09 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=2 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000101000
+NODE rank=2 coord=(0,2) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=1 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.003563000
+NODE rank=3 coord=(1,0) time=2026-10-16 18:17:09 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=4 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.002933000
+NODE rank=4 coord=(1,1) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=8 neighbour_messages_received=8 neighbour_bytes_sent=32 neighbour_bytes_received=32 exchange_time_sec=0.003569000
+NODE rank=5 coord=(1,2) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=0 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.003647000
+NODE rank=6 coord=(2,0) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=1 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000707000
+NODE rank=7 coord=(2,1) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=0 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.003576000
+NODE rank=8 coord=(2,2) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=0 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000023000
+  ADVICE to_node=0 recent_neighbour_alerts=0 count=1 nearest_nodes=4
 
 ================ ROUND 3 ================
-simulation_elapsed_sec=2.012838 alerts=1 neighbour_message_slots=48
-NODE rank=0 coord=(0,0) time=2026-10-16 17:12:46 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000023000
-NODE rank=1 coord=(0,1) time=2026-10-16 17:12:46 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=0 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000046000
-NODE rank=2 coord=(0,2) time=2026-10-16 17:12:46 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000038000
-NODE rank=3 coord=(1,0) time=2026-10-16 17:12:46 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=0 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000039000
-NODE rank=4 coord=(1,1) time=2026-10-16 17:12:46 free=0 occupied=6 port_threads=6 congested=1 alert=1 redirect_neighbour=-1 incoming_requests=4 neighbour_messages_sent=8 neighbour_messages_received=8 neighbour_bytes_sent=32 neighbour_bytes_received=32 exchange_time_sec=0.000040000
-  ALERT incident_time=2026-10-16 17:12:46 sender_rank=4 sender_coord=(1,1) sender_free_ports=0
-    top    node=1 free_ports=0 request=1
-    bottom node=7 free_ports=0 request=1
-    left   node=3 free_ports=0 request=1
-    right  node=5 free_ports=0 request=1
-NODE rank=5 coord=(1,2) time=2026-10-16 17:12:46 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=2 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000024000
-NODE rank=6 coord=(2,0) time=2026-10-16 17:12:46 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000041000
-NODE rank=7 coord=(2,1) time=2026-10-16 17:12:46 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=6 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000007000
-NODE rank=8 coord=(2,2) time=2026-10-16 17:12:46 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000031000
-  ADVICE to_node=4 recent_neighbour_alerts=0 count=4 nearest_nodes=0,2,6,8
-
-================ ROUND 4 ================
-simulation_elapsed_sec=3.015998 alerts=1 neighbour_message_slots=48
-NODE rank=0 coord=(0,0) time=2026-10-16 17:12:47 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000032000
-NODE rank=1 coord=(0,1) time=2026-10-16 17:12:47 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=0 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000040000
-NODE rank=2 coord=(0,2) time=2026-10-16 17:12:47 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000027000
-NODE rank=3 coord=(1,0) time=2026-10-16 17:12:47 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=0 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000027000
-NODE rank=4 coord=(1,1) time=2026-10-16 17:12:47 free=0 occupied=6 port_threads=6 congested=1 alert=1 redirect_neighbour=-1 incoming_requests=4 neighbour_messages_sent=8 neighbour_messages_received=8 neighbour_bytes_sent=32 neighbour_bytes_received=32 exchange_time_sec=0.000032000
-  ALERT incident_time=2026-10-16 17:12:47 sender_rank=4 sender_coord=(1,1) sender_free_ports=0
-    top    node=1 free_ports=0 request=1
-    bottom node=7 free_ports=0 request=1
-    left   node=3 free_ports=0 request=1
-    right  node=5 free_ports=0 request=1
-NODE rank=5 coord=(1,2) time=2026-10-16 17:12:47 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=2 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000030000
-NODE rank=6 coord=(2,0) time=2026-10-16 17:12:47 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000027000
-NODE rank=7 coord=(2,1) time=2026-10-16 17:12:47 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=6 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000063000
-NODE rank=8 coord=(2,2) time=2026-10-16 17:12:47 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000028000
-  ADVICE to_node=4 recent_neighbour_alerts=0 count=4 nearest_nodes=0,2,6,8
-
-================ ROUND 5 ================
-simulation_elapsed_sec=4.021523 alerts=1 neighbour_message_slots=48
-NODE rank=0 coord=(0,0) time=2026-10-16 17:12:48 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.001389000
-NODE rank=1 coord=(0,1) time=2026-10-16 17:12:48 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=0 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.001388000
-NODE rank=2 coord=(0,2) time=2026-10-16 17:12:48 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000775000
-NODE rank=3 coord=(1,0) time=2026-10-16 17:12:48 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=0 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.001355000
-NODE rank=4 coord=(1,1) time=2026-10-16 17:12:48 free=0 occupied=6 port_threads=6 congested=1 alert=1 redirect_neighbour=-1 incoming_requests=4 neighbour_messages_sent=8 neighbour_messages_received=8 neighbour_bytes_sent=32 neighbour_bytes_received=32 exchange_time_sec=0.001349000
-  ALERT incident_time=2026-10-16 17:12:48 sender_rank=4 sender_coord=(1,1) sender_free_ports=0
-    top    node=1 free_ports=0 request=1
-    bottom node=7 free_ports=0 request=1
-    left   node=3 free_ports=0 request=1
-    right  node=5 free_ports=0 request=1
-NODE rank=5 coord=(1,2) time=2026-10-16 17:12:48 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=2 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.001347000
-NODE rank=6 coord=(2,0) time=2026-10-16 17:12:48 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.001349000
-NODE rank=7 coord=(2,1) time=2026-10-16 17:12:48 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=6 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.001356000
-NODE rank=8 coord=(2,2) time=2026-10-16 17:12:48 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000760000
-  ADVICE to_node=4 recent_neighbour_alerts=0 count=4 nearest_nodes=0,2,6,8
+simulation_elapsed_sec=1.002668 alerts=1 neighbour_message_slots=48
+NODE rank=0 coord=(0,0) time=2026-10-16 18:17:09 free=0 occupied=6 port_threads=6 congested=1 alert=1 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000006000
+  ALERT incident_time=2026-10-16 18:17:09 sender_rank=0 sender_coord=(0,0) sender_free_ports=0
+    bottom node=3 free_ports=0 request=1
+    right  node=1 free_ports=0 request=1
+NODE rank=1 coord=(0,1) time=2026-10-16 18:17:09 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=2 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000067000
+NODE rank=2 coord=(0,2) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=1 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000054000
+NODE rank=3 coord=(1,0) time=2026-10-16 18:17:09 free=0 occupied=6 port_threads=6 congested=1 alert=0 redirect_neighbour=4 incoming_requests=1 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000061000
+NODE rank=4 coord=(1,1) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=2 neighbour_messages_sent=8 neighbour_messages_received=8 neighbour_bytes_sent=32 neighbour_bytes_received=32 exchange_time_sec=0.000067000
+NODE rank=5 coord=(1,2) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=0 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000015000
+NODE rank=6 coord=(2,0) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=1 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000015000
+NODE rank=7 coord=(2,1) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=0 neighbour_messages_sent=6 neighbour_messages_received=6 neighbour_bytes_sent=24 neighbour_bytes_received=24 exchange_time_sec=0.000066000
+NODE rank=8 coord=(2,2) time=2026-10-16 18:17:09 free=1 occupied=5 port_threads=6 congested=0 alert=0 redirect_neighbour=-1 incoming_requests=0 neighbour_messages_sent=4 neighbour_messages_received=4 neighbour_bytes_sent=16 neighbour_bytes_received=16 exchange_time_sec=0.000066000
+  ADVICE to_node=0 recent_neighbour_alerts=0 count=1 nearest_nodes=4
 
 ================ FINAL SUMMARY ================
-simulation_time_sec=4.021595
-total_alerts=5
-total_neighbour_message_slots=240
-total_snapshot_payloads=45
-total_advice_messages=10
-total_recommended_nodes=20
-total_logical_messages_excluding_internal_collective_protocol=349
-graceful_shutdown=initiated
+version=V1 grid=3x3 nodes=9
+simulation_time_sec=1.505031
+total_port_update_cycles=27
+total_alerts_sent=3
+total_reports_received=3
+total_redirects_to_neighbours=6
+total_recommended_nodes=3
+total_messages_sent=213
+total_bytes_sent=5280
+communication delay (ms):
+  type             count       avg_ms       max_ms
+  nbr_req              0     0.000000     0.000000
+  nbr_resp             0     0.000000     0.000000
+  nbr_rtt              9     0.707556     2.941000
+  report               3     0.236000     0.637000
+  advice               0     0.000000     0.000000
+  report_rtt           3     0.318333     0.842000
+  term                 9     0.030389     0.039500
+graceful_shutdown=complete
