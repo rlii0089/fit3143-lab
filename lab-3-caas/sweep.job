@@ -1,12 +1,19 @@
 #!/bin/bash
-# Task 3 sweep: runs V1, V2 and V3 on every grid (or line) size and appends one
-# CSV row per run to results/<grid|line>_t<threshold>.csv.
-#   sbatch sweep.job grid       34 grid shapes, rows x cols <= 31 (2x2 ... 2x15, 5x6)
-#   sbatch sweep.job line       30 line sizes, 1x2 ... 1x31
-#   sbatch sweep.job grid 4     heavier congestion (threshold 4 of 6 ports)
-# Each job = one repetition (~7 min). Submit it several times for repeats;
-# jobs queue and run one after another, each with a different seed.
+# Task 3 sweep: runs the chosen versions on every grid (or line) size and appends
+# one CSV row per run to results/<grid|line>_t<threshold>.csv.
+#   sbatch sweep.job MODE [THRESHOLD] [VERSIONS] [SEED]
+#   sbatch sweep.job grid                  34 grid shapes (rows x cols <= 31), V1-V3
+#   sbatch sweep.job line                  30 line sizes, 1x2 ... 1x31
+#   sbatch sweep.job grid 4                heavier congestion (threshold 4 of 6 ports)
+#   sbatch sweep.job grid 3 4 123456       only V4, with an earlier job's seed
+# Each job = one repetition (~7 min for 3 versions). Submit it several times for
+# repeats; the seed defaults to the job ID, so each repetition differs. To add a
+# version later on the SAME workload, rerun it with each earlier job's seed
+# (printed on the first line of that job's slurm-<id>.out).
+# Jobs appending to the same CSV at once can corrupt a row, so "singleton" makes
+# each wsn_sweep job wait until the previous one has finished.
 #SBATCH --job-name=wsn_sweep
+#SBATCH --dependency=singleton
 #SBATCH --time=00:10:00
 #SBATCH --mem=16G
 #SBATCH --ntasks=32                  ### CAAS maximum: up to 31 nodes + base station
@@ -21,7 +28,8 @@ export OMP_WAIT_POLICY=PASSIVE
 
 MODE=${1:-grid}
 THRESHOLD=${2:-3}
-SEED=${SLURM_JOB_ID:-1}
+VERSIONS=${3:-"1 2 3"}
+SEED=${4:-${SLURM_JOB_ID:-1}}
 COMMON_ARGS="--threshold $THRESHOLD --rounds 100 --interval-ms 10 --seed $SEED"
 CSV=results/${MODE}_t${THRESHOLD}.csv
 mkdir -p results logs
@@ -37,11 +45,11 @@ else
     done
 fi
 
-echo "mode=$MODE threshold=$THRESHOLD shapes=${#SHAPES[@]} seed=$SEED"
+echo "mode=$MODE threshold=$THRESHOLD versions=$VERSIONS shapes=${#SHAPES[@]} seed=$SEED"
 for shape in "${SHAPES[@]}"; do
     set -- $shape
     np=$(($1 * $2 + 1))
-    for v in 1 2 3; do
+    for v in $VERSIONS; do
         srun -n $np ../lab-3-file-$v/wsn_v$v $1 $2 $COMMON_ARGS \
             --log logs/${MODE}_t${THRESHOLD}_v${v}_${1}x${2}.log \
             --csv $CSV > /dev/null 2>&1 \

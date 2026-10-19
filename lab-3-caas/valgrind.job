@@ -2,8 +2,8 @@
 # Memory check of each version's graceful shutdown (3x3 grid, 10 MPI processes).
 # Open MPI's own libraries make valgrind report thousands of issues, so this
 # job reports only the records whose top stack frames are in OUR source files.
-# Submit from this folder:  sbatch valgrind.job          (V1, V2 and V3)
-#                           sbatch valgrind.job "2 3"    (only V2 and V3)
+# Submit from this folder:  sbatch valgrind.job          (V1-V4)
+#                           sbatch valgrind.job 4        (only V4)
 #SBATCH --job-name=wsn_valgrind
 #SBATCH --time=00:10:00
 #SBATCH --mem=16G
@@ -17,7 +17,7 @@ module load openmpi/4.1.5-gcc-11.2.0-ux65npg
 # MPI thread's core (each MPI process is given 1 core).
 export OMP_WAIT_POLICY=PASSIVE
 
-VERSIONS=${1:-"1 2 3"}
+VERSIONS=${1:-"1 2 3 4"}
 
 # Open MPI ships a suppression file for its known valgrind noise.
 SUPP="$(dirname "$(which mpicc)")/../share/openmpi/openmpi-valgrind.supp"
