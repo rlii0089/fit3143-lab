@@ -1,41 +1,53 @@
 FIT3143 Lab 3 - Base Station Log (V2)
-grid=3x3 ports=6 threshold=1 rounds=3 interval_ms=500 window_ms=30000 poll_us=100 scenario=3 seed=12345
+grid=3x3 ports=6 threshold=1 rounds=5 interval_ms=1000 window_ms=30000 poll_us=100 scenario=3 seed=12345
 
-REPORT received_at_sec=0.001985
-  ALERT incident_time=2026-10-16 18:17:11 sender_rank=0 sender_coord=(0,0) sender_free_ports=0 port_threads=6 incoming_requests=2 neighbour_messages_sent=2 neighbour_messages_received=2 neighbour_bytes_sent=16 neighbour_bytes_received=32 exchange_time_sec=0.000163000
+REPORT received_at_sec=0.000138
+  ALERT incident_time=2026-10-19 21:47:02 sender_rank=0 sender_coord=(0,0) sender_free_ports=0 port_threads=6 incoming_requests=2 neighbour_messages_sent=2 neighbour_messages_received=2 neighbour_bytes_sent=16 neighbour_bytes_received=32 exchange_time_sec=0.000004000
     bottom node=3 free_ports=0 request=1
     right  node=1 free_ports=0 request=1
   ADVICE to_node=0 recent_neighbour_alerts=0 count=1 nearest_nodes=4
 
-REPORT received_at_sec=0.501741
-  ALERT incident_time=2026-10-16 18:17:11 sender_rank=0 sender_coord=(0,0) sender_free_ports=0 port_threads=6 incoming_requests=0 neighbour_messages_sent=2 neighbour_messages_received=2 neighbour_bytes_sent=16 neighbour_bytes_received=32 exchange_time_sec=0.000149000
+REPORT received_at_sec=0.999163
+  ALERT incident_time=2026-10-19 21:47:03 sender_rank=0 sender_coord=(0,0) sender_free_ports=0 port_threads=6 incoming_requests=0 neighbour_messages_sent=2 neighbour_messages_received=2 neighbour_bytes_sent=16 neighbour_bytes_received=32 exchange_time_sec=0.000160000
     bottom node=3 free_ports=0 request=1
     right  node=1 free_ports=0 request=1
   ADVICE to_node=0 recent_neighbour_alerts=0 count=1 nearest_nodes=4
 
-REPORT received_at_sec=1.001851
-  ALERT incident_time=2026-10-16 18:17:12 sender_rank=0 sender_coord=(0,0) sender_free_ports=0 port_threads=6 incoming_requests=2 neighbour_messages_sent=2 neighbour_messages_received=2 neighbour_bytes_sent=16 neighbour_bytes_received=32 exchange_time_sec=0.000267000
+REPORT received_at_sec=1.999215
+  ALERT incident_time=2026-10-19 21:47:04 sender_rank=0 sender_coord=(0,0) sender_free_ports=0 port_threads=6 incoming_requests=1 neighbour_messages_sent=2 neighbour_messages_received=2 neighbour_bytes_sent=16 neighbour_bytes_received=32 exchange_time_sec=0.000245000
+    bottom node=3 free_ports=0 request=1
+    right  node=1 free_ports=0 request=1
+  ADVICE to_node=0 recent_neighbour_alerts=0 count=1 nearest_nodes=4
+
+REPORT received_at_sec=2.999419
+  ALERT incident_time=2026-10-19 21:47:05 sender_rank=0 sender_coord=(0,0) sender_free_ports=0 port_threads=6 incoming_requests=2 neighbour_messages_sent=2 neighbour_messages_received=2 neighbour_bytes_sent=16 neighbour_bytes_received=32 exchange_time_sec=0.000419000
+    bottom node=3 free_ports=0 request=1
+    right  node=1 free_ports=0 request=1
+  ADVICE to_node=0 recent_neighbour_alerts=0 count=1 nearest_nodes=4
+
+REPORT received_at_sec=3.999307
+  ALERT incident_time=2026-10-19 21:47:06 sender_rank=0 sender_coord=(0,0) sender_free_ports=0 port_threads=6 incoming_requests=1 neighbour_messages_sent=2 neighbour_messages_received=2 neighbour_bytes_sent=16 neighbour_bytes_received=32 exchange_time_sec=0.000206000
     bottom node=3 free_ports=0 request=1
     right  node=1 free_ports=0 request=1
   ADVICE to_node=0 recent_neighbour_alerts=0 count=1 nearest_nodes=4
 
 ================ FINAL SUMMARY ================
 version=V2 grid=3x3 nodes=9
-simulation_time_sec=1.500467
-total_port_update_cycles=27
-total_alerts_sent=3
-total_reports_received=3
-total_redirects_to_neighbours=6
-total_recommended_nodes=3
-total_messages_sent=63
-total_bytes_sent=1248
+simulation_time_sec=5.000544
+total_port_update_cycles=45
+total_alerts_sent=5
+total_reports_received=5
+total_redirects_to_neighbours=10
+total_recommended_nodes=5
+total_messages_sent=132
+total_bytes_sent=2032
 communication delay (ms):
   type             count       avg_ms       max_ms
-  nbr_req             24     0.096458     0.225000
-  nbr_resp            24     0.072083     0.131000
-  nbr_rtt             24     0.169917     0.316000
-  report               3     0.071667     0.115000
-  advice               3     0.092667     0.105000
-  report_rtt           3     0.165333     0.221000
-  term                 9     0.161000     0.193000
+  nbr_req             40     0.256000     0.950000
+  nbr_resp            40     0.020075     0.532500
+  nbr_rtt             15     0.316733     0.952000
+  report               5     0.394100     1.163500
+  advice               5     0.001900     0.007500
+  report_rtt           5     0.396400     1.164000
+  term                 9     0.458278     0.519000
 graceful_shutdown=complete

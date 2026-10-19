@@ -1,5 +1,5 @@
 #!/bin/bash
-# Quick functional check of V1 and V2 on CAAS (3x3 grid = 10 MPI processes).
+# Quick functional check of V1, V2 and V3 on CAAS (3x3 grid = 10 MPI processes).
 # Submit from this folder:  sbatch smoke_test.job
 #SBATCH --job-name=wsn_smoke
 #SBATCH --time=00:05:00
@@ -14,7 +14,7 @@ module load openmpi/4.1.5-gcc-11.2.0-ux65npg
 # MPI thread's core (each MPI process is given 1 core).
 export OMP_WAIT_POLICY=PASSIVE
 
-for v in 1 2; do
+for v in 1 2 3; do
     echo "===== V$v corner scenario (expect Node 0 -> Node 4) ====="
     srun -n 10 ../lab-3-file-$v/wsn_v$v 3 3 --scenario corner --rounds 3 \
         --interval-ms 200 --log smoke_v$v.log

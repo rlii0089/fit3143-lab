@@ -12,6 +12,9 @@
 //   4. Every node: MPI_Gather of its record   - blocking collective (world)
 //   5. Base station MPI_Send advice to each alerting node (count, then list)
 // After the last round, the base station MPI_Bcast(STOP) for a graceful shutdown.
+// Neighbour slots and the advice header carry their send time, so V1 reports the
+// same one-way delays as V2/V3 (a collective's delay includes waiting for the
+// slowest neighbour to join it).
 //
 // Based on the procedural C structure used in FIT3143 Week 11 MPI examples.
 // Example: mpirun -np 10 ./wsn_v1 3 3 --ports 6 --rounds 5 --scenario demo
@@ -32,6 +35,20 @@ typedef struct
     double sent_at;
 } Command;
 
+// One neighbour-collective slot: a request flag or a free-port count.
+typedef struct
+{
+    int value;
+    double sent_at;
+} NbrSlot;
+
+// First advice message: candidate count (the list follows if count > 0).
+typedef struct
+{
+    int count;
+    double sent_at;
+} AdviceHeader;
+
 typedef struct
 {
     long long total_alerts;
@@ -46,17 +63,17 @@ typedef struct
  *           Neighbour collectives avoid blocking point-to-point deadlocks.
  *           A request flag of 0 means this node is not currently congested.
  *           The report records neighbour ranks, results, logical message counts,
- *           transferred payload sizes, and communication time.
+ *           transferred payload sizes, and communication time. Real requests
+ *           and replies to a congested node record their one-way delay.
  */
 void exchange_neighbour_availability(ChargingNode *node, const Config *cfg,
-                                     MPI_Comm cart_comm, NodeReport *report)
+                                     MPI_Comm cart_comm, NodeReport *report,
+                                     CommStats *stats)
 {
-    int requests_out[NUM_NEIGHBOURS] = {0};
-    int requests_in[NUM_NEIGHBOURS] = {0};
-    int replies_out[NUM_NEIGHBOURS] = {-1, -1, -1, -1};
-    int replies_in[NUM_NEIGHBOURS] = {-1, -1, -1, -1};
+    NbrSlot requests_out[NUM_NEIGHBOURS], requests_in[NUM_NEIGHBOURS];
+    NbrSlot replies_out[NUM_NEIGHBOURS], replies_in[NUM_NEIGHBOURS];
     int i;
-    double start;
+    double start, now;
 
     memset(report, 0, sizeof(*report));
     report->rank = node->rank;
@@ -73,8 +90,11 @@ void exchange_neighbour_availability(ChargingNode *node, const Config *cfg,
     {
         report->neighbours[i] = node->neighbours[i];
         report->neighbour_free[i] = -1;
-        requests_out[i] = (report->congested && node->neighbours[i] != MPI_PROC_NULL);
-        report->requested[i] = requests_out[i];
+        requests_out[i].value = (report->congested && node->neighbours[i] != MPI_PROC_NULL);
+        requests_in[i].value = 0;
+        replies_out[i].value = -1;
+        replies_in[i].value = -1;
+        report->requested[i] = requests_out[i].value;
         if (node->neighbours[i] != MPI_PROC_NULL)
         {
             // Each valid neighbour receives one request flag and one response slot.
@@ -84,27 +104,37 @@ void exchange_neighbour_availability(ChargingNode *node, const Config *cfg,
     }
 
     start = global_time();
+    for (i = 0; i < NUM_NEIGHBOURS; i++) requests_out[i].sent_at = start;
     // MPI Cartesian neighbour order: top, bottom, left, right.
-    MPI_Neighbor_alltoall(requests_out, 1, MPI_INT, requests_in, 1, MPI_INT, cart_comm);
+    MPI_Neighbor_alltoall(requests_out, (int)sizeof(NbrSlot), MPI_BYTE,
+                          requests_in, (int)sizeof(NbrSlot), MPI_BYTE, cart_comm);
 
+    now = global_time();
     for (i = 0; i < NUM_NEIGHBOURS; i++)
     {
-        if (requests_in[i] != 0 && node->neighbours[i] != MPI_PROC_NULL)
+        replies_out[i].sent_at = now;
+        if (requests_in[i].value != 0 && node->neighbours[i] != MPI_PROC_NULL)
         {
+            stats_record(stats, DELAY_NBR_REQ, now - requests_in[i].sent_at);
             report->incoming_requests++;
-            replies_out[i] = node->free_ports;
+            replies_out[i].value = node->free_ports;
         }
     }
-    MPI_Neighbor_alltoall(replies_out, 1, MPI_INT, replies_in, 1, MPI_INT, cart_comm);
-    report->neighbour_exchange_seconds = global_time() - start;
-    report->neighbour_bytes_sent = report->neighbour_messages_sent * (int)sizeof(int);
-    report->neighbour_bytes_received = report->neighbour_messages_received * (int)sizeof(int);
+    MPI_Neighbor_alltoall(replies_out, (int)sizeof(NbrSlot), MPI_BYTE,
+                          replies_in, (int)sizeof(NbrSlot), MPI_BYTE, cart_comm);
+    now = global_time();
+    report->neighbour_exchange_seconds = now - start;
+    report->neighbour_bytes_sent = report->neighbour_messages_sent * (int)sizeof(NbrSlot);
+    report->neighbour_bytes_received = report->neighbour_messages_received * (int)sizeof(NbrSlot);
 
     if (!report->congested) return;
 
     for (i = 0; i < NUM_NEIGHBOURS; i++)
         if (node->neighbours[i] != MPI_PROC_NULL)
-            report->neighbour_free[i] = replies_in[i];
+        {
+            stats_record(stats, DELAY_NBR_RESP, now - replies_in[i].sent_at);
+            report->neighbour_free[i] = replies_in[i].value;
+        }
 
     report->redirect_rank = choose_redirect(cfg, report->neighbours, report->neighbour_free);
     if (report->redirect_rank < 0)
@@ -121,12 +151,15 @@ void exchange_neighbour_availability(ChargingNode *node, const Config *cfg,
  *           the base station after this node reports a congestion incident.
  *           Prints the recommendation that would be forwarded to incoming EVs.
  */
-void receive_base_advice(const ChargingNode *node, int base_rank, int round)
+void receive_base_advice(const ChargingNode *node, int base_rank, int round,
+                         CommStats *stats)
 {
+    AdviceHeader header;
     int count, i;
     int *ranks = NULL;
-    MPI_Recv(&count, 1, MPI_INT, base_rank, TAG_ADVICE_COUNT,
+    MPI_Recv(&header, (int)sizeof(header), MPI_BYTE, base_rank, TAG_ADVICE_COUNT,
              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    count = header.count;
     if (count < 0)
     {
         fprintf(stderr, "[Node %d] Received invalid advice count.\n", node->rank);
@@ -139,6 +172,8 @@ void receive_base_advice(const ChargingNode *node, int base_rank, int round)
         MPI_Recv(ranks, count, MPI_INT, base_rank, TAG_ADVICE_NODES,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
+    // Advice has fully arrived once the list (if any) is received.
+    stats_record(stats, DELAY_ADVICE, global_time() - header.sent_at);
 
     printf("[Round %d][Node %d] Congestion alert -> base station. ", round, node->rank);
     if (count == 0)
@@ -184,7 +219,7 @@ void run_charging_node(const Config *cfg, MPI_Comm cart_comm, int base_rank)
         stats.cycles++;
 
         update_charging_ports(&node, cfg, round);
-        exchange_neighbour_availability(&node, cfg, cart_comm, &report);
+        exchange_neighbour_availability(&node, cfg, cart_comm, &report, &stats);
         stats.messages_sent += report.neighbour_messages_sent;
         stats.bytes_sent += report.neighbour_bytes_sent;
         if (report.congested)
@@ -207,7 +242,7 @@ void run_charging_node(const Config *cfg, MPI_Comm cart_comm, int base_rank)
         if (report.alert)
         {
             stats.alerts++;
-            receive_base_advice(&node, base_rank, round);
+            receive_base_advice(&node, base_rank, round, &stats);
             stats_record(&stats, DELAY_REPORT_RTT, global_time() - report.sent_at);
         }
     }
@@ -280,6 +315,7 @@ void process_round_reports(const Config *cfg, int round, int node_count,
     for (i = 0; i < node_count; i++)
     {
         const NodeReport *r = &snapshots[i];
+        AdviceHeader header;
         int candidate_count, recent_count;
         if (!r->alert) continue;
         candidate_count = find_alternative_nodes(cfg, r, last_report_time,
@@ -294,9 +330,11 @@ void process_round_reports(const Config *cfg, int round, int node_count,
 
         // The receiver is waiting after MPI_Gather(), so these sends complete
         // without a message cycle or a persistent unmatched MPI request.
-        MPI_Send(&candidate_count, 1, MPI_INT, r->rank,
+        header.count = candidate_count;
+        header.sent_at = global_time();
+        MPI_Send(&header, (int)sizeof(header), MPI_BYTE, r->rank,
                  TAG_ADVICE_COUNT, MPI_COMM_WORLD);
-        stats_count_message(stats, (int)sizeof(int));
+        stats_count_message(stats, (int)sizeof(header));
         if (candidate_count > 0)
         {
             MPI_Send(recommendations, candidate_count, MPI_INT, r->rank,
@@ -380,8 +418,8 @@ void run_base_station(const Config *cfg, int base_rank)
     }
 
     metrics.start_time = global_time();
-    fprintf(log, "Note: neighbour_message_slots counts logical per-neighbour integer "
-                 "payloads, not MPI's internal collective packets.\n");
+    fprintf(log, "Note: neighbour_message_slots counts logical per-neighbour slots "
+                 "(value + send time), not MPI's internal collective packets.\n");
     fprintf(log, "Note: advice uses only alert reports (alert=1); other gathered "
                  "records are logged for reference only.\n");
 
@@ -400,7 +438,7 @@ void run_base_station(const Config *cfg, int base_rank)
                               &metrics, &stats, recommendations);
 
         // Round r occupies [(r-1) x interval, r x interval), the same timeline as
-        // V2's cycles, so both versions simulate exactly rounds x interval_ms.
+        // V2/V3's cycles, so every version simulates exactly rounds x interval_ms.
         sleep_until(metrics.start_time + round * (cfg->interval_ms / 1000.0));
     }
 
